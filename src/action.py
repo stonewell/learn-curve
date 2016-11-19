@@ -10,15 +10,7 @@ def get_action_count():
 def get_reinforcement(action, values):
     changes = values.get_changes()
 
-    if changes < 0:
-        if action == 2:
-            return changes * -1
-        else:
-            return changes
-    if changes > 0:
-        if action == 1:
-            return changes
-        else:
-            return changes * -1
-
-    return changes
+    if action == 2:
+        return changes * -1
+    else:
+        return changes

@@ -16,6 +16,9 @@ from tools.stock_data_looper import StockDataLooper
 import data.data_loader
 import core.nodes_manager
 
+from rl.rl import ReinforceLearn
+from values import Values
+
 specs = [
     tools.svm_nodes_creator.create_nodes_dif_12_26,
     tools.svm_nodes_creator.create_nodes_dea_12_26_9,
@@ -58,19 +61,36 @@ def call_stock_gen_model(user_info, stock_data_file):
 
     nodes = nm.output_wires[""]
 
+    func_update_rl = user_info
+
+    _last_values = None
+
     def __output_line():
         values = []
-        for name in sorted(nm.nodes.keys()):
-            if name in node_names:
-                values.extend(nm.nodes[name].snapshot()[:capacity])
 
-        print ','.join([str(v) for v in values])
+        #close price
+        values.extend([v.close_price for v in nm.nodes['Price'].snapshot()[:capacity]])
+
+        for name in node_names:
+            values.extend(nm.nodes[name].snapshot()[:capacity])
+
+        rl_values = [float(v) for v in values]
+
+        if _last_values is not None:
+            rl_values.extend([(values[i] - _last_values[i]) * 100 / values[i] for i in range(len(values))])
+        else:
+            rl_values.extend([0.0, 0.0, 0.0])
+
+        logging.error(rl_values)
+        func_update_rl(Values(*rl_values))
+
+        return values
 
     try:
         with open(stock_data_file,'rb') as f:
             while True:
                 done = read_data(f, nodes, capacity)
-                __output_line()
+                _last_values = __output_line()
 
                 if done:
                     break
@@ -82,9 +102,20 @@ def call_stock_gen_model(user_info, stock_data_file):
 def gen_model():
     stock_data_looper = StockDataLooper(vipdoc_path)
 
+    rl_model = ReinforceLearn()
+
+    def __update_rl(values):
+        state = rl_model.get_state(values)
+        action = rl_model.select_action(state)
+        rl_model.learn(values, state, action)
+
+        print state, action
+
     stock_data_looper.loop_stocks_with_code(call_stock_gen_model,
-                                                   None,
+                                                   __update_rl,
                                                    [600019])
+
+    print rl_model.table
 
 if __name__ == '__main__':
     try:
