@@ -77,9 +77,13 @@ def call_stock_gen_model(user_info, stock_data_file):
         rl_values = [float(v) for v in values]
 
         if _last_values is not None:
-            rl_values.extend([(values[i] - _last_values[i]) * 100 / values[i] for i in range(len(values))])
+            rl_values.extend([
+                (values[0] - _last_values[0]) * 100 / _last_values[0],
+                values[1] - _last_values[1],
+                values[2] - _last_values[2]
+                                  ])
         else:
-            rl_values.extend([0.0, 0.0, 0.0])
+            rl_values.extend([0.0] * len(values))
 
         logging.error(rl_values)
         func_update_rl(Values(*rl_values))
