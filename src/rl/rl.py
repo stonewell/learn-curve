@@ -7,9 +7,14 @@ import state.macd
 import action as act_funcs
 
 class ReinforceLearn(object):
-    def __init__(self):
-        self.state_mapping, self.state_count = self._init_state_mapping_table()
-        self.table = numpy.zeros((self.state_count, act_funcs.get_action_count()), dtype = float)
+    def __init__(self, state):
+        self.__state = state
+
+        demensions = self.__state.get_states_demension()
+        demensions += tuple([act_funcs.get_action_count()])
+
+        self.table = numpy.zeros(demensions, dtype = float)
+
         self.first = True
         self.last_state = None
         self.last_action = None
@@ -17,38 +22,23 @@ class ReinforceLearn(object):
         self.discount_rate = 0.9
         self.exploitation_rate = 1.0
 
-    def _init_state_mapping_table(self):
-        demensions = state.macd.get_states_demension()
-
-        sm = numpy.zeros(demensions)
-
-        count = 0
-        
-        for index in numpy.ndindex(demensions):
-            sm[index] = count
-            count += 1
-
-        return sm, sm.size
-
     def _get_max_qvalue(self, state):
-        return self.table[int(state)].max()
+        return self.table[state].max()
 
     def _get_best_action(self, state):
-        return self.table[int(state)].argmax()
+        return self.table[state].argmax()
 
     def _get_qvalue(self, st, action):
-        return self.table[int(st)][action]
+        return self.table[st + tuple([action])]
 
     def _set_qvalue(self, state, action, qvalue):
-        self.table[int(state)][action] = qvalue
+        self.table[state + tuple([action])] = qvalue
 
     def get_state(self, values):
-        macd_states = state.macd.get_states(values)
+        states = self.__state.get_states(values)
 
-        cur_state = self.state_mapping[macd_states]
+        return states
 
-        return cur_state
-        
     def learn(self, values, state, action):
         reinforcement = act_funcs.get_reinforcement(action, values)
 
@@ -75,7 +65,7 @@ class ReinforceLearn(object):
 
         if sum == 0.0:
             return self._get_best_action(state)
-        
+
         action_values /= sum
 
         action = 0

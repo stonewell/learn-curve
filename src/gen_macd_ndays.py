@@ -19,7 +19,7 @@ import core.nodes_manager
 from rl.rl import ReinforceLearn
 from values import Values
 import action as act_funcs
-from state.macd import Macd
+from state.macd_ndays import MacdNDays
 
 specs = [
     tools.svm_nodes_creator.create_nodes_dif_12_26,
@@ -108,7 +108,7 @@ def call_stock_gen_model(user_info, stock_data_file):
 def gen_model():
     stock_data_looper = StockDataLooper(vipdoc_path)
 
-    rl_model = ReinforceLearn(Macd())
+    rl_model = ReinforceLearn(MacdNDays(5))
 
     def __update_rl(values):
         state = rl_model.get_state(values)
