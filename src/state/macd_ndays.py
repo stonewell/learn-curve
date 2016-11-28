@@ -37,4 +37,7 @@ class MacdNDays(object):
         if len(self.__values) > self.__ndays:
             self.__values = self.__values[- self.__ndays:]
 
+        if len(self.__values) < self.__ndays:
+            return None
+        
         return tuple(self.__values)

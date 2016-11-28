@@ -18,7 +18,7 @@ import core.nodes_manager
 
 from rl.rl import ReinforceLearn
 from values import Values
-import action as act_funcs
+from action import DefaultAction
 from state.macd import Macd
 
 specs = [
@@ -108,12 +108,14 @@ def call_stock_gen_model(user_info, stock_data_file):
 def gen_model():
     stock_data_looper = StockDataLooper(vipdoc_path)
 
-    rl_model = ReinforceLearn(Macd())
+    act = DefaultAction()
+    
+    rl_model = ReinforceLearn(Macd(), act)
 
     def __update_rl(values):
         state = rl_model.get_state(values)
         #action = rl_model.select_action(state)
-        for action in range(act_funcs.get_action_count()):
+        for action in range(act.get_action_count()):
             rl_model.learn(values, state, action)
 
     if True:

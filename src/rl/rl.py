@@ -4,14 +4,14 @@ import random
 import numpy
 
 import state.macd
-import action as act_funcs
 
 class ReinforceLearn(object):
-    def __init__(self, state):
+    def __init__(self, state, action):
         self.__state = state
+        self.__action = action
 
         demensions = self.__state.get_states_demension()
-        demensions += tuple([act_funcs.get_action_count()])
+        demensions += tuple([self.__action.get_action_count()])
 
         self.table = numpy.zeros(demensions, dtype = float)
 
@@ -22,42 +22,48 @@ class ReinforceLearn(object):
         self.discount_rate = 0.9
         self.exploitation_rate = 1.0
 
-    def _get_max_qvalue(self, state):
-        return self.table[state].max()
+    def _get_max_qvalue(self, st):
+        return self.table[tuple(map(int, st))].max()
 
-    def _get_best_action(self, state):
-        return self.table[state].argmax()
+    def _get_best_action(self, st):
+        return self.table[tuple(map(int, st))].argmax()
 
     def _get_qvalue(self, st, action):
-        return self.table[st + tuple([action])]
+        index = map(int, st + tuple([action]))
+        
+        return self.table[tuple(index)]
 
-    def _set_qvalue(self, state, action, qvalue):
-        self.table[state + tuple([action])] = qvalue
+    def _set_qvalue(self, st, action, qvalue):
+        index = st + tuple([action])
+        index = map(int, list(index))
+
+        self.table[tuple(index)] = qvalue
 
     def get_state(self, values):
         states = self.__state.get_states(values)
 
         return states
 
-    def learn(self, values, state, action):
-        reinforcement = act_funcs.get_reinforcement(action, values)
+    def learn(self, values, st, action):
+        reinforcement = self.__action.get_reinforcement(action, values)
 
         if self.first:
             self.first = False
-            self.last_state, self.last_action = state, action
+            self.last_state, self.last_action = st, action
             return
 
         old_qvalue = self._get_qvalue(self.last_state, self.last_action)
+
         new_qvalue = ((1 - self.learning_rate) * old_qvalue +
-            self.learning_rate * (reinforcement + self.discount_rate * self._get_max_qvalue(state)))
+            self.learning_rate * (reinforcement + self.discount_rate * self._get_max_qvalue(st)))
         self._set_qvalue(self.last_state, self.last_action, new_qvalue)
-        self.last_state, self.last_action = state, action
+        self.last_state, self.last_action = st, action
 
     def select_action(self, state):
         sum = 0.0
 
-        action_values = numpy.zeros(act_funcs.get_action_count(), dtype=float)
-        for i in range(act_funcs.get_action_count()):
+        action_values = numpy.zeros(self.__action.get_action_count(), dtype=float)
+        for i in range(self.__action.get_action_count()):
             qvalue = self._get_qvalue(state, i)
             action_values[i] = exp(self.exploitation_rate * qvalue)
 
@@ -72,7 +78,7 @@ class ReinforceLearn(object):
         cum_prob = 0.0
         random_num = random.random()
 
-        while random_num > cum_prob and action < act_funcs.get_action_count():
+        while random_num > cum_prob and action < self.__action.get_action_count():
             cum_prob += action_values[action]
             action += 1
 

@@ -4,13 +4,14 @@
 0 keep
 '''
 
-def get_action_count():
-    return 3
+class DefaultAction(object):
+    def get_action_count(self):
+        return 3
 
-def get_reinforcement(action, values):
-    changes = values.get_changes()
+    def get_reinforcement(self, action, values):
+        changes = values.get_changes()
 
-    if action == 2:
-        return changes * -1
-    else:
-        return changes
+        if action == 2:
+            return changes * -1
+        else:
+            return changes
