@@ -17,7 +17,6 @@ class ReinforceLearn(object):
 
         self.first = True
         self.last_state = None
-        self.last_action = None
         self.learning_rate = 0.1
         self.discount_rate = 0.9
         self.exploitation_rate = 1.0
@@ -44,20 +43,21 @@ class ReinforceLearn(object):
 
         return states
 
-    def learn(self, values, st, action):
-        reinforcement = self.__action.get_reinforcement(action, values)
-
+    def learn(self, values, st):
         if self.first:
             self.first = False
-            self.last_state, self.last_action = st, action
+            self.last_state = st
             return
 
-        old_qvalue = self._get_qvalue(self.last_state, self.last_action)
+        for i in range(self.__action.get_action_count()):
+            reinforcement = self.__action.get_reinforcement(i, values)
 
-        new_qvalue = ((1 - self.learning_rate) * old_qvalue +
-            self.learning_rate * (reinforcement + self.discount_rate * self._get_max_qvalue(st)))
-        self._set_qvalue(self.last_state, self.last_action, new_qvalue)
-        self.last_state, self.last_action = st, action
+            old_qvalue = self._get_qvalue(self.last_state, i)
+
+            new_qvalue = ((1 - self.learning_rate) * old_qvalue +
+                self.learning_rate * (reinforcement + self.discount_rate * self._get_max_qvalue(st)))
+            self._set_qvalue(self.last_state, i, new_qvalue)
+        self.last_state = st
 
     def select_action(self, state):
         sum = 0.0

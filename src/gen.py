@@ -115,8 +115,7 @@ def gen_model():
     def __update_rl(values):
         state = rl_model.get_state(values)
         #action = rl_model.select_action(state)
-        for action in range(act.get_action_count()):
-            rl_model.learn(values, state, action)
+        rl_model.learn(values, state)
 
     if True:
         stock_data_looper.loop_stocks_with_code(call_stock_gen_model,
