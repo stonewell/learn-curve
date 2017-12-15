@@ -90,3 +90,4 @@ ENV/
 
 Vipdoc/
 vip/
+*.db
