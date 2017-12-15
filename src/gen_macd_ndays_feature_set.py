@@ -25,7 +25,8 @@ dif_col = "Close_DIF_12_26"
 ndays = 5
 forecast_days = 5
 capacity = ndays + forecast_days
-changes = 1.05
+change_delta = 5
+changes = 1 + float(change_delta) / 100
 
 def call_stock_gen_feature_set(user_info, stock_data_file):
     logging.info('Processing:{}'.format(stock_data_file))
@@ -75,7 +76,8 @@ def call_stock_gen_feature_set(user_info, stock_data_file):
 def gen_feature_set():
     stock_data_looper = StockDataLooper(vipdoc_path)
 
-    db = dataset.connect(''.join(["sqlite:///macd_features.db"]))
+    db = dataset.connect(''.join(["sqlite:///macd_features_{}_{}_{}.db".format(ndays, forecast_days, change_delta)]))
+    db['features'].table.delete()
 
     if True:
         stock_data_looper.loop_stocks_with_code(call_stock_gen_feature_set,
