@@ -8,6 +8,7 @@ import dataset
 module_path = os.path.join(os.path.dirname(__file__), "..", "modules")
 data_path = os.path.join(os.path.dirname(__file__), "..", "data")
 vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "vip", "vipdoc")
+feature_path = os.path.join(os.path.dirname(__file__), "..", "feature")
 
 sys.path.append(module_path)
 sys.dont_write_bytecode = True
@@ -66,8 +67,11 @@ def call_stock_gen_model(user_info, stock_data_file):
 
     db_name, ext = os.path.splitext(os.path.basename(stock_data_file))
 
-    db = dataset.connect(''.join(["sqlite:///", db_name, ".db"]))
+    db_file_name = ''.join([db_name, ".db"])
+
+    db = dataset.connect(''.join(["sqlite:///", os.path.join(data_path, db_file_name)]))
     table = db['days_values']
+    db['days_values'].table.delete()
 
     cells = []
     def __output_line():
@@ -102,16 +106,16 @@ def call_stock_gen_model(user_info, stock_data_file):
 def gen_model():
     stock_data_looper = StockDataLooper(vipdoc_path)
 
-    def __update_rl(values):
-        pass
+    if not os.path.isdir(data_path):
+        os.makedirs(data_path)
 
     if True:
         stock_data_looper.loop_stocks_with_code(call_stock_gen_model,
-                                                    __update_rl,
+                                                    None,
                                                     [600050])
     else:
         stock_data_looper.loop_hu_shen_300_stocks(call_stock_gen_model,
-                                                    __update_rl)
+                                                    None)
 
 
 if __name__ == '__main__':

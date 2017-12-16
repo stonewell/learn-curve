@@ -8,6 +8,7 @@ import dataset
 module_path = os.path.join(os.path.dirname(__file__), "..", "modules")
 data_path = os.path.join(os.path.dirname(__file__), "..", "data")
 vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "vip", "vipdoc")
+feature_path = os.path.join(os.path.dirname(__file__), "..", "feature")
 
 sys.path.append(module_path)
 sys.dont_write_bytecode = True
@@ -33,7 +34,13 @@ def call_stock_gen_feature_set(user_info, stock_data_file):
 
     db_name, ext = os.path.splitext(os.path.basename(stock_data_file))
 
-    db = dataset.connect(''.join(["sqlite:///", db_name, ".db"]))
+    db_file_name = os.path.join(data_path, ''.join([db_name, ".db"]))
+
+    if not os.path.isfile(db_file_name):
+        logging.error('{} not found.'.format(db_file_name))
+        return
+
+    db = dataset.connect(''.join(["sqlite:///", db_file_name]))
     table = db['days_values']
 
     day_begin, day_end, macd_db = user_info
@@ -76,7 +83,12 @@ def call_stock_gen_feature_set(user_info, stock_data_file):
 def gen_feature_set():
     stock_data_looper = StockDataLooper(vipdoc_path)
 
-    db = dataset.connect(''.join(["sqlite:///macd_features_{}_{}_{}.db".format(ndays, forecast_days, change_delta)]))
+    feature_db_name = "macd_features_{}_{}_{}.db".format(ndays, forecast_days, change_delta)
+
+    if not os.path.isdir(feature_path):
+        os.makedirs(feature_path)
+
+    db = dataset.connect(''.join(["sqlite:///", os.path.join(feature_path, feature_db_name)]))
     db['features'].table.delete()
 
     if True:
