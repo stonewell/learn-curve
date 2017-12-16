@@ -4,7 +4,7 @@ import logging
 
 import dataset
 
-#add modules to sys path
+# add modules to sys path
 module_path = os.path.join(os.path.dirname(__file__), "..", "modules")
 data_path = os.path.join(os.path.dirname(__file__), "..", "data")
 vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "vip", "vipdoc")
@@ -13,13 +13,8 @@ feature_path = os.path.join(os.path.dirname(__file__), "..", "feature")
 sys.path.append(module_path)
 sys.dont_write_bytecode = True
 
-import tools.svm_nodes_creator
 from tools.stock_data_looper import StockDataLooper
 
-import data.data_loader
-import core.nodes_manager
-
-from state.macd_ndays import MacdNDays
 dea_col = "Close_DEA_12_26_9"
 dif_col = "Close_DIF_12_26"
 
@@ -28,6 +23,7 @@ forecast_days = 5
 capacity = ndays + forecast_days
 change_delta = 5
 changes = 1 + float(change_delta) / 100
+
 
 def call_stock_gen_feature_set(user_info, stock_data_file):
     logging.info('Processing:{}'.format(stock_data_file))
@@ -41,16 +37,15 @@ def call_stock_gen_feature_set(user_info, stock_data_file):
         return
 
     db = dataset.connect(''.join(["sqlite:///", db_file_name]))
-    table = db['days_values']
 
-    day_begin, day_end, macd_db = user_info
+    day_begin, day_end, macd_db, gen_feature_set = user_info
 
     result = db.query('SELECT * FROM days_values WHERE date > {} and date < {}'.format(day_begin, day_end))
 
     macd = []
     prices = []
 
-    macd_table = macd_db['features']
+    macd_table = macd_db['features'] if gen_feature_set else macd_db['tests']
 
     features_rows = []
     for row in result:
@@ -80,6 +75,7 @@ def call_stock_gen_feature_set(user_info, stock_data_file):
 
     macd_table.insert_many(features_rows)
 
+
 def gen_feature_set():
     stock_data_looper = StockDataLooper(vipdoc_path)
 
@@ -89,15 +85,21 @@ def gen_feature_set():
         os.makedirs(feature_path)
 
     db = dataset.connect(''.join(["sqlite:///", os.path.join(feature_path, feature_db_name)]))
-    db['features'].table.delete()
+    db['features'].delete()
+    db['tests'].delete()
 
-    if True:
+    if False:
         stock_data_looper.loop_stocks_with_code(call_stock_gen_feature_set,
-                                                (20160101, 20161231, db),
+                                                (20160101, 20161231, db, True),
+                                                [600019])
+        stock_data_looper.loop_stocks_with_code(call_stock_gen_feature_set,
+                                                (20170101, 20171231, db, False),
                                                 [600019])
     else:
         stock_data_looper.loop_hu_shen_300_stocks(call_stock_gen_feature_set,
-                                                  (20160101, 20161231, db))
+                                                  (20160101, 20161231, db, True))
+        stock_data_looper.loop_hu_shen_300_stocks(call_stock_gen_feature_set,
+                                                  (20167101, 20171231, db, False))
 
 
 if __name__ == '__main__':
