@@ -24,7 +24,7 @@ forecast_days = 5
 capacity = ndays + forecast_days
 change_delta = 5
 changes = 1 + float(change_delta) / 100
-labels_count = 2
+labels_count = 3
 
 
 def next_batch(results, iterator_count=1, batch_count=None):
@@ -44,7 +44,7 @@ def next_batch(results, iterator_count=1, batch_count=None):
                 values.append(results[index + i]['macd_{}'.format(n)])
 
             features.append(values)
-            labels.append([1, 0] if results[index + i]['label'] == 1 else [0, 1])
+            labels.append([1, 0, 0] if results[index + i]['label'] == 1 else [0, 1, 0] if results[index + i]['label'] == 2 else [0, 0, 1])
 
         index += loop
         if index >= len(results):
@@ -65,7 +65,7 @@ def to_tensors(results):
             values.append(results[i]['macd_{}'.format(n)])
 
         features.append(values)
-        labels.append([1, 0] if results[i]['label'] == 1 else [0, 1])
+        labels.append([1, 0, 0] if results[i]['label'] == 1 else [0, 1, 0] if results[i]['label'] == 2 else [0, 0, 1])
 
     return (features, labels)
 

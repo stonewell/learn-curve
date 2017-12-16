@@ -64,6 +64,14 @@ def call_stock_gen_feature_set(user_info, stock_data_file):
                     features['macd_{}'.format(i)] = macd[i][1]
                 features['label'] = 2
                 features_rows.append(features)
+            else:
+                features = {}
+                features['date'] = macd[0][0]
+                for i in range(len(macd)):
+                    features['macd_{}'.format(i)] = macd[i][1]
+                features['label'] = 3
+                features_rows.append(features)
+
         macd.append((row['date'], 2 * (row[dif_col] - row[dea_col])))
         prices.append(row['close'])
 
