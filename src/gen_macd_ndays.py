@@ -150,16 +150,19 @@ def gen_model():
 
     rl_model = ReinforceLearn(MacdNDays(5), act)
 
+    states = set()
+    
     def __update_rl(values):
         state = rl_model.get_state(values)
 
         if state is None:
             return
-        
+
+        states.add(state)
         #action = rl_model.select_action(state)
         rl_model.learn(values, state)
 
-    if True:
+    if False:
         stock_data_looper.loop_stocks_with_code(call_stock_gen_model,
                                                     __update_rl,
                                                     [600019, 600050])
@@ -168,6 +171,7 @@ def gen_model():
                                                     __update_rl)
 
     print rl_model.table
+    print len(states)
 
 if __name__ == '__main__':
     try:
