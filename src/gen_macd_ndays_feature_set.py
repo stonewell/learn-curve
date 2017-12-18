@@ -25,6 +25,29 @@ change_delta = 5
 changes = 1 + float(change_delta) / 100
 
 
+def get_features(macd):
+    features = {}
+    features['date'] = macd[0][0]
+    for i in range(ndays):
+        features['macd_{}'.format(i)] = macd[i][1]
+
+    return features
+
+
+def get_label(p):
+    prices = p[-forecast_days:]
+    if all([x>=prices[0] for x in prices]) and prices[-1] >= prices[0] * changes:
+        return 5
+    elif all([x>=prices[0] for x in prices]):
+        return 4
+    elif all([x<=prices[0] for x in prices]) and prices[-1] <= (prices[0] - prices[0] * float(change_delta) / 100):
+        return 1
+    elif all([x<=prices[0] for x in prices]):
+        return 2
+    else:
+        return 3
+
+
 def call_stock_gen_feature_set(user_info, stock_data_file):
     logging.info('Processing:{}'.format(stock_data_file))
 
@@ -49,36 +72,18 @@ def call_stock_gen_feature_set(user_info, stock_data_file):
 
     features_rows = []
     for row in result:
-        if len(macd) == ndays and len(prices) == forecast_days:
-            if all([x>=prices[0] for x in prices]) and max(prices) >= prices[0] * changes and max(prices) == prices[-1]:
-                features = {}
-                features['date'] = macd[0][0]
-                for i in range(len(macd)):
-                    features['macd_{}'.format(i)] = macd[i][1]
-                features['label'] = 1
-                features_rows.append(features)
-            elif all([x<=prices[0] for x in prices]) and min(prices) * changes <= prices[0] and min(prices) == prices[-1]:
-                features = {}
-                features['date'] = macd[0][0]
-                for i in range(len(macd)):
-                    features['macd_{}'.format(i)] = macd[i][1]
-                features['label'] = 2
-                features_rows.append(features)
-            else:
-                features = {}
-                features['date'] = macd[0][0]
-                for i in range(len(macd)):
-                    features['macd_{}'.format(i)] = macd[i][1]
-                features['label'] = 3
-                features_rows.append(features)
+        if len(macd) == capacity and len(prices) == capacity:
+            features = get_features(macd)
+            features['label'] = get_label(prices)
+            features_rows.append(features)
 
         macd.append((row['date'], 2 * (row[dif_col] - row[dea_col])))
         prices.append(row['close'])
 
-        while len(macd) > ndays:
+        while len(macd) > capacity:
             del macd[0]
 
-        while len(prices) > forecast_days:
+        while len(prices) > capacity:
             del prices[0]
 
     macd_table.insert_many(features_rows)

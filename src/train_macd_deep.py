@@ -67,7 +67,7 @@ def to_tensors(results):
     loop = len(results)
 
     for i in range(loop):
-        if results[i]['label'] == 9:
+        if not results[i]['label'] != 3:
             continue
 
         values = []
