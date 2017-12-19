@@ -24,12 +24,20 @@ forecast_days = 5
 capacity = ndays + forecast_days
 change_delta = 5
 changes = 1 + float(change_delta) / 100
-labels_count = 5
+labels_count = 8 + 1
 
 
 def get_label(label):
     labels = [0] * labels_count
-    labels[label - 1] = 1
+
+    if label == 3000:
+        labels[labels_count - 1] = 1
+    # elif label < 5:
+    #     labels[0] = 1
+    # else:
+    #     labels[1] = 1
+    else:
+        labels[label - 1] = 1
 
     return labels
 
@@ -60,14 +68,16 @@ def next_batch(results, iterator_count=1, batch_count=None):
         yield (features, labels)
 
 
-def to_tensors(results):
+def to_tensors(results, check_label = None):
     features = []
     labels = []
 
     loop = len(results)
 
     for i in range(loop):
-        if results[i]['label'] == 9:
+        if check_label and get_label(results[i]['label'])[check_label] != 1:
+            continue
+        elif not check_label and results[i]['label'] == 3000:
             continue
 
         values = []
@@ -116,16 +126,18 @@ def train_model():
     tf.global_variables_initializer().run()
 
     # Train
-    for batch_xs, batch_ys in next_batch(result, 2000, 100):
+    for batch_xs, batch_ys in next_batch(result, 10000, 100):
         sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
 
     # Test trained model
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-    test_x, test_y = to_tensors(test_results)
-    print(sess.run(accuracy, feed_dict={x: test_x,
-                                        y_: test_y}))
+
+    for label in range(labels_count - 1):
+        test_x, test_y = to_tensors(test_results, label)
+        print(label + 1,sess.run(accuracy, feed_dict={x: test_x,
+                                                      y_: test_y}))
 
 
 if __name__ == '__main__':

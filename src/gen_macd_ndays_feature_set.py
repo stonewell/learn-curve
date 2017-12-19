@@ -25,7 +25,8 @@ change_delta = 5
 changes = 1 + float(change_delta) / 100
 
 
-def get_features(macd):
+def get_features(macds):
+    macd = macds[:ndays]
     features = {}
     features['date'] = macd[0][0]
     for i in range(ndays):
@@ -36,16 +37,28 @@ def get_features(macd):
 
 def get_label(p):
     prices = p[-forecast_days:]
-    if all([x>=prices[0] for x in prices]) and prices[-1] >= prices[0] * changes:
-        return 5
+    if (all([x>=prices[0] for x in prices])
+        and max(prices) >= prices[0] * changes):
+        if prices[-1] >= max(prices):
+            return 1
+        if max(prices) - prices[-1] < max(prices) * .02:
+            return 2
+        return 3
     elif all([x>=prices[0] for x in prices]):
         return 4
-    elif all([x<=prices[0] for x in prices]) and prices[-1] <= (prices[0] - prices[0] * float(change_delta) / 100):
-        return 1
+    elif (all([x<=prices[0] for x in prices])
+          and min(prices) <= (prices[0] - prices[0] * float(change_delta) / 100)):
+        if prices[-1] <= min(prices):
+            return 5
+
+        if prices[-1] - min(prices) < min(prices) * .02:
+            return 6
+
+        return 7
     elif all([x<=prices[0] for x in prices]):
-        return 2
+        return 8
     else:
-        return 3
+        return 3000
 
 
 def call_stock_gen_feature_set(user_info, stock_data_file):
