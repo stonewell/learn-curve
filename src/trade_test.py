@@ -82,13 +82,14 @@ def call_stock_trade_test(user_info, stock_data_file):
 
         records, total = trade_rule.final_results()
 
-        if total < 0.20:
+        if total < 0.20 or len(records) < 10:
             trade_rule.reset()
             return
         print stock_data_file
         for r in records:
             print r
-        print total
+        print total, [x[2] > 0 for x in records].count(True), [x[2] < 0 for x in records].count(True)
+        print sum([x[2] if x[2] > 0 else 0 for x in records]), sum([x[2] if x[2] < 0 else 0 for x in records])
         print ""
         print ""
         trade_rule.reset()
@@ -103,9 +104,9 @@ def trade_test():
 
     from trade_rules.rule_5_days_2_percent_last_day_only import TradeRule
 
-    if True:
+    if False:
         stock_data_looper.loop_stocks_with_code(call_stock_trade_test,
-                                                (TradeRule(), 20160101, 20161231),
+                                                (TradeRule(), 20170101, 20171231),
                                                 [600782])
     else:
         stock_data_looper.loop_hu_shen_300_stocks(call_stock_trade_test,
