@@ -82,7 +82,7 @@ def call_stock_trade_test(user_info, stock_data_file):
 
         records, total = trade_rule.final_results()
 
-        if total < 0.20 or len(records) < 10:
+        if total < 0.20:
             trade_rule.reset()
             return
         print stock_data_file
@@ -102,7 +102,10 @@ def trade_test():
     if not os.path.isdir(data_path):
         os.makedirs(data_path)
 
-    from trade_rules.rule_5_days_2_percent_last_day_only import TradeRule
+    # from trade_rules.rule_5_days_2_percent_last_day_only import TradeRule
+    from trade_rules.rule_macd_cross import TradeRule
+    # from trade_rules.rule_kdj_cross import TradeRule
+    # from trade_rules.rule_rsi_cross import TradeRule
 
     if False:
         stock_data_looper.loop_stocks_with_code(call_stock_trade_test,
@@ -110,7 +113,7 @@ def trade_test():
                                                 [600782])
     else:
         stock_data_looper.loop_hu_shen_300_stocks(call_stock_trade_test,
-                                                  (TradeRule(), 20170101, 20171231)
+                                                  (TradeRule(), 20160101, 20161231)
                                                   )
 
 
