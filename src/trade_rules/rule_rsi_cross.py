@@ -19,7 +19,6 @@ from tools.stock_data_looper import StockDataLooper
 import data.data_loader
 import core.nodes_manager
 
-import core.nodes_manager
 import core.nodes.kdj_node
 import core.nodes.macd_node
 import core.nodes.k_line_node

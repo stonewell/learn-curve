@@ -19,7 +19,7 @@ def delta_change(values):
 		else:
 			v = (values[i] - last) * 100 / last
 			results.append(v)
-		
+
 		last = values[i]
 
 	return results
@@ -29,7 +29,7 @@ def mo(values, group_count = 10):
 
 	for i in range(0, group_count + 1):
 		groups.append(0)
-	
+
 	count = len(values)
 
 	if not values:
@@ -50,4 +50,11 @@ def mo(values, group_count = 10):
 		result.append(float(groups[i]) * 100 / count)
 
 	return result
-			
+
+def cross(v1, v2, days):
+    for i in range(1, days - 1):
+        if (all([v1[j] <= v2[j] for j in range(i)])
+            and all([v1[j] > v2[j] for j in range(i, days)])):
+            return True
+
+    return False

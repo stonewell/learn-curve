@@ -102,12 +102,13 @@ def trade_test():
     if not os.path.isdir(data_path):
         os.makedirs(data_path)
 
-    # from trade_rules.rule_5_days_2_percent_last_day_only import TradeRule
-    from trade_rules.rule_macd_cross import TradeRule
+    #from trade_rules.rule_5_days_2_percent_last_day_only import TradeRule
+    #from trade_rules.rule_macd_cross import TradeRule
     # from trade_rules.rule_kdj_cross import TradeRule
     # from trade_rules.rule_rsi_cross import TradeRule
+    from trade_rules.rule_kama_ma_cross import TradeRule
 
-    if False:
+    if True:
         stock_data_looper.loop_stocks_with_code(call_stock_trade_test,
                                                 (TradeRule(), 20170101, 20171231),
                                                 [600782])

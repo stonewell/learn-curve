@@ -34,7 +34,7 @@ class TradeRule(trade_rule.TradeRule):
         prices = [v.close_price for v in self._last_days]
 
         if max(prices) - prices[-1] > self._max_price * .02:
-            return True
+            return not (prices[-1] - min(prices) > min(prices) * .02)
 
         return False
 

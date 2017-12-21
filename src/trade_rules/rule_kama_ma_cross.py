@@ -3,6 +3,7 @@ import os
 import logging
 
 import trade_rule
+
 #add modules to sys path
 module_path = os.path.join(os.path.dirname(__file__), "..", "modules")
 data_path = os.path.join(os.path.dirname(__file__), "..", "data")
@@ -18,21 +19,48 @@ from tools.stock_data_looper import StockDataLooper
 import data.data_loader
 import core.nodes_manager
 
-from state.macd_ndays import MacdNDays
-from utils.util_funcs import cross
+import core.nodes.kdj_node
+import core.nodes.macd_node
+import core.nodes.k_line_node
+import core.nodes.osc_node
+import core.nodes.basic_node
+import core.nodes.kama_node
+
+kama_days = 2
+ma_days = 5
+
+def create_nodes_ma(nm, from_name, capacity):
+    node_names = []
+    node_names.append(core.nodes.basic_node.create_ma_node(nm, from_name, ma_days, capacity).name)
+
+    return node_names
+
+def create_nodes_kama(nm, from_name, capacity):
+    node_names = []
+    node_names.append(core.nodes.kama_node.create_kama_node(nm, from_name, kama_days, capacity).name)
+
+    return node_names
 
 specs = [
-    tools.svm_nodes_creator.create_nodes_dif_12_26,
-    tools.svm_nodes_creator.create_nodes_dea_12_26_9,
+    create_nodes_kama,
+    create_nodes_ma,
 ]
 
-dea_col = "Close_DEA_12_26_9"
-dif_col = "Close_DIF_12_26"
+kama_col = "Close_KAMA_{}".format(kama_days)
+ma_col = "Close_MA_{}".format(ma_days)
 
 ndays = 5
 forecast_days = 0
 capacity = ndays + forecast_days
 
+
+def cross(v1, v2, days):
+    for i in range(1, days - 1):
+        if (all([v1[j] <= v2[j] for j in range(i)])
+            and all([v1[j] > v2[j] for j in range(i, days)])):
+            return True
+
+    return False
 
 def build_nodes():
     nm = core.nodes_manager.NodesManager()
@@ -73,25 +101,25 @@ class TradeRule(trade_rule.TradeRule):
         super(TradeRule, self).on_data(data)
 
     def _should_buy(self, data):
-        difs = self._nm.nodes[dif_col].snapshot()
-        deas = self._nm.nodes[dea_col].snapshot()
+        kamas = self._nm.nodes[kama_col].snapshot()
+        mas = self._nm.nodes[ma_col].snapshot()
 
-        if len(difs) < ndays or len(deas) < ndays:
+        if len(kamas) < ndays or len(mas) < ndays:
             return False
 
-        if cross(difs, deas, ndays):
+        if cross(kamas, mas, ndays):
             return True
 
         return False
 
     def _should_sell(self, data):
-        difs = self._nm.nodes[dif_col].snapshot()
-        deas = self._nm.nodes[dea_col].snapshot()
+        kamas = self._nm.nodes[kama_col].snapshot()
+        mas = self._nm.nodes[ma_col].snapshot()
 
-        if len(difs) < ndays or len(deas) < ndays:
+        if len(kamas) < ndays or len(mas) < ndays:
             return False
 
-        if cross(deas, difs, ndays):
+        if cross(mas, kamas, ndays):
             return True
 
         return False
