@@ -2,9 +2,7 @@ import sys
 import os
 import logging
 
-import pandas_datareader.data as web
-import pandas as pd
-import datetime
+import tushare as ts
 import requests_cache
 
 #add modules to sys path
@@ -27,17 +25,18 @@ def call_stock_trade_test(user_info, stock_symbol):
     trade_rule, day_begin, day_end = user_info
 
     try:
-        f = web.DataReader(stock_symbol, 'morningstar', day_begin, day_end)
+        f = ts.get_k_data(stock_symbol, start=day_begin, end=day_end)
 
-        for symbol,date in f.index:
+        for i in f.T:
+            d = f.T[i]
             v = DayData()
             v.stock_id = stock_symbol
-            v.amount = f.loc[(symbol, date)].Volume
-            v.close_price = f.loc[(symbol, date)].Close
-            v.open_price = f.loc[(symbol, date)].Open
-            v.highest_price = f.loc[(symbol, date)].High
-            v.lowest_price = f.loc[(symbol, date)].Low
-            v.date = date
+            v.amount = d.volume
+            v.close_price = d.close
+            v.open_price = d.open
+            v.highest_price = d.high
+            v.lowest_price = d.low
+            v.date = d.date
 
             trade_rule.on_data(v)
 
@@ -76,10 +75,11 @@ def get_rule():
         yield (n, rules[n]())
 
 def trade_test():
+
     for n, rule in get_rule():
         print '-------- Evaluate', n
-        call_stock_trade_test((rule, '20170101', '20180430'),
-                              'SYMC')
+        call_stock_trade_test((rule, '2017-11-01', '2018-04-30'),
+                          '600019')
         print '----------------------'
 
 if __name__ == '__main__':
