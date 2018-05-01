@@ -14,6 +14,8 @@ def get_rule():
     rules = {
         '2%':tr1,
         'macd':tr2,
+        'kdj':tr3,
+        'rsi':tr4,
         'kama_ma':tr5,
         'ma':tr6
         }

@@ -40,7 +40,7 @@ def get_day_data(stock_symbol, day_begin, day_end):
 def trade_test():
     for n, rule in get_rule():
         print '-------- Evaluate', n
-        call_stock_trade_test((rule, '20170101', '20180430'),
+        call_stock_trade_test((rule, '20171101', '20180430'),
                               'SYMC',
                               get_day_data)
         print '----------------------'

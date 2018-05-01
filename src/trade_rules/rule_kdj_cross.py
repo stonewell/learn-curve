@@ -112,8 +112,8 @@ class TradeRule(trade_rule.TradeRule):
         if len(k) < ndays or len(d) < ndays or len(j) < ndays:
             return False
 
-        if (in_range(k, 40, 60)
-            and in_range(d, 40, 60)
+        if (in_range(k, 0, 40)
+            and in_range(d, 0, 40)
             #and in_range(j, 40, 60)
             and cross(k, d, ndays)
             #and cross(j, d, ndays)
@@ -130,8 +130,8 @@ class TradeRule(trade_rule.TradeRule):
         if len(k) < ndays or len(d) < ndays or len(j) < ndays:
             return False
 
-        if (in_range(k, 70, 90)
-            and in_range(d, 70, 90)
+        if (in_range(k, 80, 100)
+            and in_range(d, 80, 100)
             #and in_range(j, 70, 90)
             and cross(d, k, ndays)
             #and cross(d, j, ndays)

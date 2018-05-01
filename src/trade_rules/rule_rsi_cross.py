@@ -108,8 +108,8 @@ class TradeRule(trade_rule.TradeRule):
         if len(rsi_1) < ndays or len(rsi_2) < ndays:
             return False
 
-        if (in_range(rsi_1, 40, 60)
-            and in_range(rsi_2, 40, 60)
+        if (in_range(rsi_1, 40, 100)
+            and in_range(rsi_2, 40, 100)
             and cross(rsi_1, rsi_2, ndays)
         ):
             return True
@@ -123,8 +123,8 @@ class TradeRule(trade_rule.TradeRule):
         if len(rsi_1) < ndays or len(rsi_2) < ndays:
             return False
 
-        if (in_range(rsi_1, 40, 60)
-            and in_range(rsi_2, 40, 60)
+        if (in_range(rsi_1, 0, 60)
+            and in_range(rsi_2, 0, 60)
             and cross(rsi_2, rsi_1, ndays)
         ):
             return True
