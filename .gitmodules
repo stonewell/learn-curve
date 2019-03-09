@@ -1,0 +1,6 @@
+[submodule "third_party/zipline"]
+	path = third_party/zipline
+	url = https://github.com/quantopian/zipline
+[submodule "third_party/tushare"]
+	path = third_party/tushare
+	url = https://github.com/waditu/tushare
