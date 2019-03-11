@@ -7,7 +7,7 @@ from zipline.utils.calendars import register_calendar
 from cn_a.tushare_calendar import CNAExchangeCalendar
 
 
-start_session = pd.Timestamp('2016-1-1', tz='utc')
+start_session = pd.Timestamp('2016-1-4', tz='utc')
 end_session = pd.Timestamp('2018-1-2', tz='utc')
 
 register_calendar('CN_A',
