@@ -21,7 +21,7 @@ from cn_a import tushare_token
 def init_trade_calendar():
     pro_api = ts.pro_api(tushare_token)
 
-    trade_cal = pro_api.trade_cal(exchange='', start_date='19990101', end_date='20181231')
+    trade_cal = pro_api.trade_cal(exchange='', start_date='19990101', end_date='20191231')
 
     not_open = trade_cal['is_open'] == 0
     trade_date = trade_cal[not_open]['cal_date']
@@ -46,6 +46,16 @@ class CNAExchangeCalendar(TradingCalendar):
     Open Time: 9:30AM, UTC
     Close Time: 15:00PM, UTC
     """
+
+    def __init__(self, tmp_no_trading_date):
+        from .tushare_not_trading_date import not_trading_date
+
+        self.tmp_no_trading_date = tmp_no_trading_date
+        self.holidays = []
+        self.holidays.extend(self.tmp_no_trading_date)
+        self.holidays.extend(not_trading_date)
+
+        super().__init__()
 
     @property
     def name(self):
@@ -77,11 +87,10 @@ class CNAExchangeCalendar(TradingCalendar):
       The days on which our exchange will be open.
       """
       weekmask = "Mon Tue Wed Thu Fri Sat Sun"
-      from .tushare_not_trading_date import not_trading_date
 
       return CustomBusinessDay(
           weekmask=weekmask,
-          holidays=not_trading_date
+          holidays=self.holidays
       )
 
 if __name__ == '__main__':
