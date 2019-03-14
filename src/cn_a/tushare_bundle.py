@@ -38,9 +38,7 @@ def ingest(environ,
                                end_date=end_session.strftime('%Y%m%d'),
                                adj='hfq')
 
-            def normalize_date(x):
-                return x.strftime('%Y-%m-%d')
-            tushare_daily['day'] = pd.to_datetime(tushare_daily['trade_date'])#.apply(normalize_date)
+            tushare_daily['day'] = pd.to_datetime(tushare_daily['trade_date'])
             tushare_daily['volume'] = tushare_daily['vol']
             tushare_daily['id'] = tushare_daily['ts_code']
 
@@ -59,4 +57,5 @@ def ingest(environ,
             daily_bar_writer.write([(sid, tushare_daily)], show_progress=show_progress)
 
     metadata['exchange'] = 'SSE'
-    asset_db_writer.write(equities=metadata);
+    asset_db_writer.write(equities=metadata)
+    adjustment_writer.write(None)
