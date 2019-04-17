@@ -36,7 +36,7 @@ def ingest(environ,
                                asset='E',
                                start_date=start_session.strftime('%Y%m%d'),
                                end_date=end_session.strftime('%Y%m%d'),
-                               adj='hfq')
+                               adj='qfq')
 
             tushare_daily['day'] = pd.to_datetime(tushare_daily['trade_date'])
             tushare_daily['volume'] = tushare_daily['vol']

@@ -4,3 +4,4 @@ tushare
 zipline
 ta-lib
 matplotlib
+pyfolio

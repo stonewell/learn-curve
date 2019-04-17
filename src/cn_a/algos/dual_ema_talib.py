@@ -22,7 +22,7 @@ its shares once the averages cross again (indicating downwards
 momentum).
 """
 
-from zipline.api import order, record, symbol
+from zipline.api import order, record, symbol, order_target_percent
 from zipline.finance import commission, slippage
 # Import exponential moving average from talib wrapper
 from talib import EMA
@@ -54,11 +54,11 @@ def handle_data(context, data):
     sell = False
 
     if (short_ema[-1] > long_ema[-1]) and not context.invested:
-        order(context.asset, 100)
+        order_target_percent(context.asset, 1)
         context.invested = True
         buy = True
     elif (short_ema[-1] < long_ema[-1]) and context.invested:
-        order(context.asset, -100)
+        order_target_percent(context.asset, 0)
         context.invested = False
         sell = True
 

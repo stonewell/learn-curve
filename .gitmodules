@@ -4,3 +4,6 @@
 [submodule "third_party/tushare"]
 	path = third_party/tushare
 	url = https://github.com/waditu/tushare
+[submodule "third_party/pyfolio"]
+	path = third_party/pyfolio
+	url = https://github.com/quantopian/pyfolio.git
