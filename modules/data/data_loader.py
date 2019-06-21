@@ -2,8 +2,8 @@ import sys
 import struct
 import os
 
-import day_data
-import five_minute_data
+from . import day_data
+from . import five_minute_data
 
 day_data_rec_fmt = '<iiiiifii'
 day_data_rec_size = struct.calcsize(day_data_rec_fmt)
@@ -41,7 +41,7 @@ def create_five_min_data(val_array):
 def __file_size(f):
 	saved_pos = f.tell()
 	f.seek(0, os.SEEK_END)
-	
+
 	filesize = f.tell()
 	f.seek(saved_pos, os.SEEK_SET)
 	return filesize
@@ -57,7 +57,7 @@ def __read_all_data(f, fmt, rec_size, data_create_func):
 	while len(s) == day_data_rec_size:
 		all_data.append(data_create_func(struct.unpack(fmt, s)))
 		s = f.read(rec_size)
-	
+
 	f.seek(saved_pos, os.SEEK_SET)
 
 	return all_data
@@ -68,7 +68,7 @@ def __read_next(f, fmt, rec_size, data_create_func, rec_offset = 0, offset_dir =
 	data = None
 
 	s = f.read(rec_size)
-	
+
 	if len(s) == rec_size:
 		data = data_create_func(struct.unpack(fmt, s))
 
@@ -84,6 +84,5 @@ def read_all_five_min_data(f):
 	return __read_all_data(f, five_min_data_rec_fmt, five_min_data_rec_size, create_five_min_data)
 
 def read_next_five_min_data(f, rec_offset = 0, offset_dir = os.SEEK_CUR):
-	return __read_next(f, five_min_data_rec_fmt, five_min_data_rec_size, 
+	return __read_next(f, five_min_data_rec_fmt, five_min_data_rec_size,
 					   create_five_min_data, rec_offset, offset_dir)
-
