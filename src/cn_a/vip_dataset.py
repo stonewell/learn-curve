@@ -5,6 +5,9 @@ import logging
 #add modules to sys path
 module_path = os.path.join(os.path.dirname(__file__), "..", "..", "modules")
 vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..",  "..", "vip", "vipdoc")
+if not os.path.exists(vipdoc_path):
+    vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "vip", "vipdoc")
+
 data_path = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 
 sys.path.append(module_path)
@@ -16,6 +19,8 @@ from tools.stock_data_looper import StockDataLooper
 import pandas as pd
 import datetime
 import numpy
+
+import tushare_adjfactor as adj
 
 
 class VipDataSet(object):
@@ -29,6 +34,7 @@ class VipDataSet(object):
 def process_stock_file(userinfo, stock_data_file):
     data_frame = pd.DataFrame(columns=['day', 'open', 'high', 'low', 'close', 'volume'])
     stock_id = os.path.splitext(os.path.basename(stock_data_file))[0]
+    tushare_symbol = '{}.{}'.format(stock_id[2:], stock_id[:2].upper())
 
     logging.info('processing {}, id:{}'.format(stock_data_file, stock_id))
 
@@ -55,6 +61,7 @@ def process_stock_file(userinfo, stock_data_file):
             userinfo.data_frame = data_frame
             userinfo.err = False
             dr = pd.date_range(start=trading_date[0], end=trading_date[-1])
+            normalize_data(userinfo, tushare_symbol)
             userinfo.holidays = list(map(pd.to_datetime, numpy.setdiff1d(dr, pd.DatetimeIndex(trading_date))))
         #end with
     except:
@@ -62,8 +69,26 @@ def process_stock_file(userinfo, stock_data_file):
         logging.exception('Error process:{}'.format(stock_data_file))
 
 
-def normalize_data(data_frame):
-    pass
+def normalize_data(vip_data, tushare_symbol):
+    values = adj.load_adjfactor(tushare_symbol, data_path)
+
+    def adj_price(x, *args, **kwds):
+        try:
+            adj_v = values[x.name]
+            v = [x['open'] * adj_v,
+                    x['high'] * adj_v,
+                    x['low'] * adj_v,
+                    x['close'] * adj_v,
+                    x['volume']]
+
+            return v
+        except KeyError:
+            return x
+        except:
+            logging.exception('Error adj prices')
+            return x
+
+    vip_data.data_frame = vip_data.data_frame.apply(adj_price, result_type='broad_cast', axis=1)
 
 def load_stock_data(symbol):
     stock_data_looper = StockDataLooper(vipdoc_path)
@@ -75,7 +100,6 @@ def load_stock_data(symbol):
 
     if data.err:
         raise ValueError()
-    normalize_data(data.data_frame)
 
     return data
 
@@ -83,5 +107,5 @@ if __name__ == '__main__':
     logging.getLogger('').setLevel(logging.DEBUG)
     data = load_stock_data(600019)
 
-    logging.debug('vip data:\n{}'.format(data.data_frame.head()))
+    logging.debug('vip data:\n{}'.format(data.data_frame.tail()))
     logging.debug('vip data holidays:\n{}'.format(data.holidays[:10]))

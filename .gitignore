@@ -92,3 +92,4 @@ Vipdoc/
 vip/
 *.db
 *.sqlite
+data/
