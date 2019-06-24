@@ -6,6 +6,8 @@ from functools import lru_cache
 import pandas as pd
 import pytz
 
+import pyfolio as pf
+
 from zipline import run_algorithm
 
 from cn_a.vip_dataset import load_stock_data
@@ -61,6 +63,11 @@ class AlgoRunner(object):
                                   analyze=self.analyze_,
                                   default_extension=False)
         logging.debug('perf data:{}'.format(perf_data.tail()))
+
+        returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(perf_data)
+        pf.create_full_tear_sheet(returns, positions=positions, transactions=transactions,
+                          live_start_date='2015-01-01', round_trips=True)
+
 
 if __name__ == '__main__':
     logging.getLogger('').setLevel(logging.DEBUG)
