@@ -2,7 +2,7 @@ import os
 
 import tushare as ts
 import pandas as pd
-from cn_a import tushare_token
+from . import tushare_token
 
 
 def load_adjfactor(symbol, data_path):

@@ -20,7 +20,8 @@ import pandas as pd
 import datetime
 import numpy
 
-import tushare_adjfactor as adj
+from . import tushare_adjfactor as adj
+from .cna_calendar import CNAExchangeCalendar
 
 
 class VipDataSet(object):
@@ -30,6 +31,8 @@ class VipDataSet(object):
         self.data_frame = pd.DataFrame(columns=['day', 'open', 'high', 'low', 'close', 'volume'])
         self.data_frame.set_index('day')
         self.holidays = None
+        self.trading_cal = None
+        self.trading_date = None
 
 def process_stock_file(userinfo, stock_data_file):
     data_frame = pd.DataFrame(columns=['day', 'open', 'high', 'low', 'close', 'volume'])
@@ -54,7 +57,7 @@ def process_stock_file(userinfo, stock_data_file):
                                    'close':d.close_price,
                                    'volume':d.vol},
                                   True)
-                trading_date.append(day)
+                trading_date.append(day.tz_localize('UTC'))
             #end while
             data_frame = data_frame.set_index('day').sort_index()
 
@@ -63,6 +66,8 @@ def process_stock_file(userinfo, stock_data_file):
             dr = pd.date_range(start=trading_date[0], end=trading_date[-1])
             normalize_data(userinfo, tushare_symbol)
             userinfo.holidays = list(map(pd.to_datetime, numpy.setdiff1d(dr, pd.DatetimeIndex(trading_date))))
+            userinfo.trading_cal = CNAExchangeCalendar(userinfo.holidays)
+            userinfo.trading_date = trading_date
         #end with
     except:
         userinfo.err = True
@@ -102,10 +107,3 @@ def load_stock_data(symbol):
         raise ValueError()
 
     return data
-
-if __name__ == '__main__':
-    logging.getLogger('').setLevel(logging.DEBUG)
-    data = load_stock_data(600019)
-
-    logging.debug('vip data:\n{}'.format(data.data_frame.tail()))
-    logging.debug('vip data holidays:\n{}'.format(data.holidays[:10]))

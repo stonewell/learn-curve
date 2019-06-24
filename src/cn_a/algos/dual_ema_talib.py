@@ -26,11 +26,12 @@ from zipline.api import order, record, symbol, order_target_percent
 from zipline.finance import commission, slippage
 # Import exponential moving average from talib wrapper
 from talib import EMA
-import extension
+import pandas as pd
 
+symbol_id = None
 
 def initialize(context):
-    context.asset = symbol('600019.SH')
+    context.asset = symbol(symbol_id)
 
     # To keep track of whether we invested in the stock or not
     context.invested = False
