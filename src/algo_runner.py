@@ -3,6 +3,8 @@ import sys
 import logging
 from functools import lru_cache
 
+import numpy as np
+
 import pandas as pd
 import pytz
 
@@ -44,7 +46,7 @@ def _general_analyze(perf_data):
                                        transactions=transactions)
 
     logging.info(perf_stats)
-
+    logging.info("Sharpe Ratio:{}%".format(np.round(perf_stats.loc['Sharpe ratio'] * 100)))
 
 class AlgoRunner(object):
     def __init__(self, algo, capital_base):
@@ -87,7 +89,7 @@ class AlgoRunner(object):
 
 
 if __name__ == '__main__':
-    logging.getLogger('').setLevel(logging.DEBUG)
+    logging.getLogger('').setLevel(logging.INFO)
     data = _load_data(600019)
 
     logging.debug('vip data:\n{}'.format(data.data_frame.tail()))
