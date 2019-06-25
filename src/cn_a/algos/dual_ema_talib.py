@@ -72,7 +72,7 @@ def handle_data(context, data):
 
 # Note: this function can be removed if running
 # this algorithm on quantopian.com
-def analyze(context=None, results=None):
+def __analyze(context=None, results=None):
     import matplotlib
     matplotlib.use('TkAgg')
     import matplotlib.pyplot as plt

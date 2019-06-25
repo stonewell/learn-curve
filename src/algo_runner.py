@@ -7,6 +7,7 @@ import pandas as pd
 import pytz
 
 import pyfolio as pf
+from pyfolio import timeseries
 
 from zipline import run_algorithm
 
@@ -36,6 +37,16 @@ def _create_pd_panel(data):
 
     return panel
 
+def _general_analyze(perf_data):
+    returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(perf_data)
+
+    perf_stats = timeseries.perf_stats(returns,
+                                       positions=positions,
+                                       transactions=transactions)
+
+    logging.info(perf_stats)
+
+
 class AlgoRunner(object):
     def __init__(self, algo, capital_base):
         self.initialize_ = _load_algo_func(algo, "initialize")
@@ -46,13 +57,21 @@ class AlgoRunner(object):
         self.capital_base_ = capital_base
 
 
-    def run(self, symbol, start_date = None, end_date = None):
+    def run(self, symbol, start_date = None, end_date = None, analyze_func = None):
         data = _load_data(symbol)
         start_date = pd.to_datetime(start_date or data.trading_date[0], utc=True)
         end_date = pd.to_datetime(end_date or data.trading_date[-1], utc=True)
         setattr(self.algo_, 'symbol_id', str(data.stock_id))
 
         panel = _create_pd_panel(data)
+
+        def tmp_analyze_func(context=None, results=None):
+            if analyze_func is not None:
+                analyze_func(results)
+            elif self.analyze_ is not None:
+                self.analyze_(context, results)
+            else:
+                _general_analyze(results)
 
         perf_data = run_algorithm(start=start_date,
                                   end=end_date,
@@ -62,10 +81,9 @@ class AlgoRunner(object):
                                   initialize=self.initialize_,
                                   handle_data=self.handle_data_,
                                   before_trading_start=self.before_trading_start_,
-                                  analyze=self.analyze_,
+                                  analyze=tmp_analyze_func,
                                   default_extension=False)
 
-        perf_data.to_pickle('output.pickle')
 
 
 if __name__ == '__main__':
