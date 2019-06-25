@@ -12,7 +12,6 @@ from pyfolio import timeseries
 from zipline import run_algorithm
 
 from cn_a.vip_dataset import load_stock_data
-from cn_a.algos import dual_ema_talib as algo
 
 sys.dont_write_bytecode = True
 
@@ -84,6 +83,7 @@ class AlgoRunner(object):
                                   analyze=tmp_analyze_func,
                                   default_extension=False)
 
+        return perf_data
 
 
 if __name__ == '__main__':
@@ -93,5 +93,8 @@ if __name__ == '__main__':
     logging.debug('vip data:\n{}'.format(data.data_frame.tail()))
     logging.debug('vip data holidays:\n{}'.format(data.holidays[:10]))
 
+    from cn_a.algos import dual_ema_talib as algo
+
     runner = AlgoRunner(algo, 100000.0)
     runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True))
+    runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True), analyze_func=lambda x:algo.__analyze(None, x))

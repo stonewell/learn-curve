@@ -35,7 +35,7 @@ class VipDataSet(object):
         self.trading_date = None
 
 def process_stock_file(userinfo, stock_data_file):
-    data_frame = pd.DataFrame(columns=['day', 'open', 'high', 'low', 'close', 'volume'])
+    data_frame = []
     stock_id = os.path.splitext(os.path.basename(stock_data_file))[0]
     tushare_symbol = '{}.{}'.format(stock_id[2:], stock_id[:2].upper())
 
@@ -50,15 +50,17 @@ def process_stock_file(userinfo, stock_data_file):
                 if d == None:
                     break
                 day = pd.to_datetime(d.date, format='%Y%m%d')
-                data_frame = data_frame.append({'day':day,
+                data_frame.append({'day':day,
                                    'open':d.open_price,
                                    'high':d.highest_price,
                                    'low':d.lowest_price,
                                    'close':d.close_price,
-                                   'volume':d.vol},
-                                  True)
+                                   'volume':d.vol})
                 trading_date.append(day.tz_localize('UTC'))
             #end while
+
+            data_frame = pd.DataFrame(data=data_frame,
+                                      columns=['day', 'open', 'high', 'low', 'close', 'volume'])
             data_frame = data_frame.set_index('day').sort_index()
 
             userinfo.data_frame = data_frame
