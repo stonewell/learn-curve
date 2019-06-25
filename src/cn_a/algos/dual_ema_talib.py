@@ -35,6 +35,7 @@ def initialize(context):
 
     # To keep track of whether we invested in the stock or not
     context.invested = False
+    context.portfolio_highest = 0.0
 
     # Explicitly set the commission/slippage to the "old" value until we can
     # rebuild example data.
@@ -54,14 +55,34 @@ def handle_data(context, data):
     buy = False
     sell = False
 
-    if (short_ema[-1] > long_ema[-1]) and not context.invested:
+    _long = (short_ema[-1] > long_ema[-1])
+    _short = (short_ema[-1] < long_ema[-1])# and (short_ema[-2] < long_ema[-2])
+
+    pv = context.portfolio.positions[context.asset].amount * data.current(context.asset, "price")
+
+    #_short = _short or (context.portfolio_highest * 0.9 > pv)
+
+    if _short and context.invested:
+        print(context.portfolio_highest, pv)
+
+    if _long and not context.invested:
         order_target_percent(context.asset, 1)
         context.invested = True
         buy = True
-    elif (short_ema[-1] < long_ema[-1]) and context.invested:
+        context.portfolio_highest = 0.0
+    elif _short and context.invested:
         order_target_percent(context.asset, 0)
         context.invested = False
         sell = True
+        context.portfolio_highest = 0.0
+    # elif context.portfolio_highest > 0 and (context.portfolio_highest * 1.1 <= pv) and context.invested:
+    #     if context.portfolio.positions[context.asset].amount < 10:
+    #         order(context.asset, context.portfolio.positions[context.asset].amount * -1)
+    #         context.invested = False
+    #     else:
+    #         order(context.asset, context.portfolio.positions[context.asset].amount * -0.1)
+    #     sell = True
+    #     context.portfolio_highest = 0.0
 
     record(SH600019=data.current(context.asset, "price"),
            short_ema=short_ema[-1],
@@ -69,6 +90,8 @@ def handle_data(context, data):
            buy=buy,
            sell=sell)
 
+    if (pv > context.portfolio_highest):
+        context.portfolio_highest = pv
 
 # Note: this function can be removed if running
 # this algorithm on quantopian.com
