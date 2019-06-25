@@ -13,6 +13,8 @@ from zipline import run_algorithm
 from cn_a.vip_dataset import load_stock_data
 from cn_a.algos import dual_ema_talib as algo
 
+sys.dont_write_bytecode = True
+
 @lru_cache(maxsize=42)
 def _load_data(symbol):
     return load_stock_data(symbol)
@@ -62,11 +64,8 @@ class AlgoRunner(object):
                                   before_trading_start=self.before_trading_start_,
                                   analyze=self.analyze_,
                                   default_extension=False)
-        logging.debug('perf data:{}'.format(perf_data.tail()))
 
-        returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(perf_data)
-        pf.create_full_tear_sheet(returns, positions=positions, transactions=transactions,
-                          live_start_date='2015-01-01', round_trips=True)
+        perf_data.to_pickle('output.pickle')
 
 
 if __name__ == '__main__':

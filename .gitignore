@@ -93,3 +93,4 @@ vip/
 *.db
 *.sqlite
 data/
+*.pickle
