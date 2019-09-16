@@ -5,3 +5,4 @@ zipline
 ta-lib
 matplotlib
 pyfolio
+python-dateutil

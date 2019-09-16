@@ -25,8 +25,9 @@ momentum).
 from zipline.api import order, record, symbol, order_target_percent
 from zipline.finance import commission, slippage
 # Import exponential moving average from talib wrapper
-from talib import EMA
+from talib import EMA, MA
 import pandas as pd
+import numpy as np
 
 symbol_id = None
 
@@ -36,6 +37,7 @@ def initialize(context):
     # To keep track of whether we invested in the stock or not
     context.invested = False
     context.portfolio_highest = 0.0
+    context.price_highest = 0.0
 
     # Explicitly set the commission/slippage to the "old" value until we can
     # rebuild example data.
@@ -46,35 +48,48 @@ def initialize(context):
 
 
 def handle_data(context, data):
-    trailing_window = data.history(context.asset, 'price', 40, '1d')
+    trailing_window = data.history(context.asset, 'price', 80, '1d')
     if trailing_window.isnull().values.any():
         return
-    short_ema = EMA(trailing_window.values, timeperiod=20)
-    long_ema = EMA(trailing_window.values, timeperiod=40)
+    short_ema = EMA(trailing_window.values, timeperiod=13)
+    long_ema = EMA(trailing_window.values, timeperiod=26)
+
+    vv = data.history(context.asset, ['high', 'low'], 5, '1d')
+
+    vv = (vv['high'] - vv['low']).mean()
+
+    vvv = data.history(context.asset, ['high', 'low'], 3, '1d')
+
+    vvv = (vvv['high'] - vvv['low']).mean() * .5
 
     buy = False
     sell = False
 
-    _long = (short_ema[-1] > long_ema[-1])
-    _short = (short_ema[-1] < long_ema[-1])# and (short_ema[-2] < long_ema[-2])
+    _long = (short_ema[-1] > long_ema[-1]) and (short_ema[-2] >= long_ema[-2])
+    _short = (short_ema[-1] < long_ema[-1]) and (short_ema[-2] <= long_ema[-2])
 
-    pv = context.portfolio.positions[context.asset].amount * data.current(context.asset, "price")
+    pv = data.current(context.asset, "price")
 
-    #_short = _short or (context.portfolio_highest * 0.9 > pv)
+    if context.price_highest < pv:
+        context.price_highest = pv - vvv
+
+    trailing_stop = MA(trailing_window.values, timeperiod=3)[-1] < context.price_highest
+    _short = _short or (context.portfolio_highest > pv) or trailing_stop
 
     if _short and context.invested:
-        print(context.portfolio_highest, pv)
+        print(context.portfolio_highest, pv, context.price_highest, (context.portfolio_highest > pv), trailing_stop)
 
     if _long and not context.invested:
         order_target_percent(context.asset, 1)
         context.invested = True
         buy = True
-        context.portfolio_highest = 0.0
+        context.portfolio_highest = data.current(context.asset, "price") - vv
     elif _short and context.invested:
         order_target_percent(context.asset, 0)
         context.invested = False
         sell = True
         context.portfolio_highest = 0.0
+        context.price_highest = 0.0
     # elif context.portfolio_highest > 0 and (context.portfolio_highest * 1.1 <= pv) and context.invested:
     #     if context.portfolio.positions[context.asset].amount < 10:
     #         order(context.asset, context.portfolio.positions[context.asset].amount * -1)
@@ -89,9 +104,6 @@ def handle_data(context, data):
            long_ema=long_ema[-1],
            buy=buy,
            sell=sell)
-
-    if (pv > context.portfolio_highest):
-        context.portfolio_highest = pv
 
 # Note: this function can be removed if running
 # this algorithm on quantopian.com

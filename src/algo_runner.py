@@ -47,6 +47,7 @@ def _general_analyze(perf_data):
 
     logging.info(perf_stats)
     logging.info("Sharpe Ratio:{}%".format(np.round(perf_stats.loc['Sharpe ratio'] * 100)))
+    perf_data.to_pickle('output.pickle')
 
 class AlgoRunner(object):
     def __init__(self, algo, capital_base):
@@ -98,6 +99,9 @@ if __name__ == '__main__':
     from cn_a.algos import dual_ema_talib as algo
 
     runner = AlgoRunner(algo, 100000.0)
-    runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True),
-               end_date=pd.to_datetime('2017-01-01', utc=True))
-    #runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True), analyze_func=lambda x:algo.__analyze(None, x))
+    runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
+               ,end_date=pd.to_datetime('2017-01-01', utc=True)
+    )
+    #runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
+    #           ,end_date=pd.to_datetime('2017-01-01', utc=True)
+    #           , analyze_func=lambda x:algo.__analyze(None, x))
