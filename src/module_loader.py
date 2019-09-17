@@ -3,6 +3,9 @@ import os
 import sys
 
 def load_module_from_file(module_file):
+    if not os.path.isfile(module_file):
+        return importlib.import_module(module_file)
+
     module_name = os.path.basename(module_file)[:-3]
     try:
         return sys.modules[module_name]

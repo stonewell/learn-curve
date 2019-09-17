@@ -1,9 +1,15 @@
+import sys
 import argparse
 import datetime
 import dateutil.relativedelta
 import logging
 
-from . import module_loader
+sys.dont_write_bytecode = True
+
+try:
+    from . import module_loader
+except:
+    import module_loader
 
 def valid_date(s):
    try:
@@ -69,3 +75,4 @@ if __name__ == '__main__':
 
     strategy = module_loader.load_module_from_file(args.strategy)
     object_function = module_loader.load_module_from_file(args.object_function)
+    stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)

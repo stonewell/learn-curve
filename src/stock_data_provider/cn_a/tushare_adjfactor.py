@@ -2,8 +2,8 @@ import os
 
 import tushare as ts
 import pandas as pd
-from . import tushare_token
 
+tushare_token = '06ee7f002e4636fcbaa0d5e5b41779664ac5556f59964e782ba9e6bb'
 
 def load_adjfactor(symbol, data_path):
     adj_file = os.path.join(data_path, symbol, 'adj.txt')
