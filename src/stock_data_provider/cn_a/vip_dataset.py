@@ -3,12 +3,12 @@ import os
 import logging
 
 #add modules to sys path
-module_path = os.path.join(os.path.dirname(__file__), "..", "..", "modules")
-vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..",  "..", "vip", "vipdoc")
+module_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "modules")
+vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "..",  "..", "vip", "vipdoc")
 if not os.path.exists(vipdoc_path):
-    vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "vip", "vipdoc")
+    vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "vip", "vipdoc")
 
-data_path = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+data_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data")
 
 sys.path.append(module_path)
 sys.dont_write_bytecode = True

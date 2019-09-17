@@ -3,6 +3,7 @@ import argparse
 import datetime
 import dateutil.relativedelta
 import logging
+import pandas as pd
 
 sys.dont_write_bytecode = True
 
@@ -10,6 +11,12 @@ try:
     from . import module_loader
 except:
     import module_loader
+
+try:
+    from . import algo_runner
+except:
+    import algo_runner
+
 
 def valid_date(s):
    try:
@@ -76,3 +83,8 @@ if __name__ == '__main__':
     strategy = module_loader.load_module_from_file(args.strategy)
     object_function = module_loader.load_module_from_file(args.object_function)
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
+
+    runner = algo_runner.AlgoRunner(strategy, object_function, stock_data_provider, 100000.0, args)
+    runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
+               ,end_date=pd.to_datetime('2017-01-01', utc=True)
+    )

@@ -13,16 +13,10 @@ from pyfolio import timeseries
 
 from zipline import run_algorithm
 
-from cn_a.vip_dataset import load_stock_data
-
 sys.dont_write_bytecode = True
 
 @lru_cache(maxsize=42)
-def _load_data(symbol):
-    return load_stock_data(symbol)
-
-@lru_cache(maxsize=42)
-def _load_algo_func(algo_module, name):
+def _load_module_func(algo_module, name):
     try:
         return getattr(algo_module, name)
     except AttributeError:
@@ -50,17 +44,24 @@ def _general_analyze(perf_data):
     perf_data.to_pickle('output.pickle')
 
 class AlgoRunner(object):
-    def __init__(self, algo, capital_base):
-        self.initialize_ = _load_algo_func(algo, "initialize")
-        self.handle_data_ = _load_algo_func(algo, "handle_data")
-        self.before_trading_start_ = _load_algo_func(algo, "before_trading_start")
-        self.analyze_ = _load_algo_func(algo, "analyze")
+    def __init__(self, algo, obj_func, stock_data_provider, capital_base, parameters):
+        self.initialize_ = _load_module_func(algo, "initialize")
+        self.handle_data_ = _load_module_func(algo, "handle_data")
+        self.before_trading_start_ = _load_module_func(algo, "before_trading_start")
+        self.analyze_ = _load_module_func(algo, "analyze")
         self.algo_ = algo
+
+        self.obj_func_ = obj_func
+
+        self.stock_data_provider_ = stock_data_provider
+        self.load_data = _load_module_func(stock_data_provider, 'load_stock_data')
+
         self.capital_base_ = capital_base
+        self.parameters_ = parameters
 
 
     def run(self, symbol, start_date = None, end_date = None, analyze_func = None):
-        data = _load_data(symbol)
+        data = self.load_data(symbol)
         start_date = pd.to_datetime(start_date or data.trading_date[0], utc=True)
         end_date = pd.to_datetime(end_date or data.trading_date[-1], utc=True)
         setattr(self.algo_, 'symbol_id', str(data.stock_id))
