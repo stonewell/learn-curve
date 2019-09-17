@@ -1,6 +1,9 @@
 import argparse
 import datetime
 import dateutil.relativedelta
+import logging
+
+from . import module_loader
 
 def valid_date(s):
    try:
@@ -50,12 +53,19 @@ if __name__ == '__main__':
         args.debug = 0
 
     if args.debug > 0:
-        print('debug level:', args.debug)
-        print('stock_ids:', args.stock_id)
-        print('data_range:', args.data_range)
-        print('optimize_range:', args.optimize_range)
-        print('wfa_size:', args.wfa_size)
-        print('wfa range:', [args.optimize_range[1], args.optimize_range[1] + args.wfa_size])
-        print('strategy:', args.strategy)
-        print('object_function:', args.object_function)
-        print('data_provider:', args.stock_data_provider)
+        logging.getLogger('').setLevel(logging.DEBUG)
+    else:
+        logging.getLogger('').setLevel(logging.INFO)
+
+    logging.debug('debug level:{}'.format(args.debug))
+    logging.debug('stock_ids:{}'.format(args.stock_id))
+    logging.debug('data_range:{}'.format(args.data_range))
+    logging.debug('optimize_range:{}'.format(args.optimize_range))
+    logging.debug('wfa_size:{}'.format(args.wfa_size))
+    logging.debug('wfa range:{}'.format([args.optimize_range[1], args.optimize_range[1] + args.wfa_size]))
+    logging.debug('strategy:{}'.format(args.strategy))
+    logging.debug('object_function:{}'.format(args.object_function))
+    logging.debug('data_provider:{}'.format(args.stock_data_provider))
+
+    strategy = module_loader.load_module_from_file(args.strategy)
+    object_function = module_loader.load_module_from_file(args.object_function)
