@@ -6,3 +6,4 @@ ta-lib
 matplotlib
 pyfolio
 python-dateutil
+baostock
