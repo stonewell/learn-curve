@@ -40,7 +40,7 @@ def parse_arguments():
 
     parser.add_argument("-d", "--debug", help="print debug information", action="count")
     parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0')
-    parser.add_argument("-s", "--stock_id", help="stock ids to process", action="append", required=True)
+    parser.add_argument("-s", "--stock_id", help="stock ids to process", action="append", required=True, dest="stock_ids")
 
     parser.add_argument("--data_range", help="stock data range", nargs=2, required=True,
                         type=valid_date,
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         logging.getLogger('').setLevel(logging.INFO)
 
     logging.debug('debug level:{}'.format(args.debug))
-    logging.debug('stock_ids:{}'.format(args.stock_id))
+    logging.debug('stock_ids:{}'.format(args.stock_ids))
     logging.debug('data_range:{}'.format(args.data_range))
     logging.debug('optimize_range:{}'.format(args.optimize_range))
     logging.debug('wfa_size:{}'.format(args.wfa_size))
@@ -85,6 +85,8 @@ if __name__ == '__main__':
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
 
     runner = algo_runner.AlgoRunner(strategy, object_function, stock_data_provider, 100000.0, args)
-    runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
-               ,end_date=pd.to_datetime('2017-01-01', utc=True)
+    #runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
+    #           ,end_date=pd.to_datetime('2017-01-01', utc=True)
+    runner.run(args.stock_ids, start_date=args.optimize_range[0]
+               , end_date=args.optimize_range[1]
     )

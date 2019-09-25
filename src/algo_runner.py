@@ -22,9 +22,10 @@ def _load_module_func(algo_module, name):
     except AttributeError:
         return None
 
-def _create_pd_panel(data):
+def _create_pd_panel(all_data):
     trading_data = {}
-    trading_data[data.stock_id] = data.data_frame
+    for data in all_data:
+        trading_data[data.stock_id] = data.data_frame
 
     panel = pd.Panel(trading_data)
     panel.minor_axis = ["open","high","low","close","volume"]
@@ -60,11 +61,14 @@ class AlgoRunner(object):
         self.parameters_ = parameters
 
 
-    def run(self, symbol, start_date = None, end_date = None, analyze_func = None):
-        data = self.load_data(symbol)
-        start_date = pd.to_datetime(start_date or data.trading_date[0], utc=True)
-        end_date = pd.to_datetime(end_date or data.trading_date[-1], utc=True)
-        setattr(self.algo_, 'symbol_id', str(data.stock_id))
+    def run(self, symbols, start_date = None, end_date = None, analyze_func = None):
+        data = []
+        for symbol in symbols:
+            data.append(self.load_data(symbol))
+
+        start_date = pd.to_datetime(start_date, utc=True)
+        end_date = pd.to_datetime(end_date, utc=True)
+        setattr(self.algo_, 'symbol_ids', symbols)
 
         panel = _create_pd_panel(data)
 
@@ -78,7 +82,7 @@ class AlgoRunner(object):
 
         perf_data = run_algorithm(start=start_date,
                                   end=end_date,
-                                  trading_calendar=data.trading_cal,
+                                  trading_calendar=data[0].trading_cal,
                                   data=panel,
                                   capital_base=self.capital_base_,
                                   initialize=self.initialize_,
