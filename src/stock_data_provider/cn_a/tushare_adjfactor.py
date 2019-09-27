@@ -39,3 +39,7 @@ def load_adjfactor_from_file(adj_file):
     # end with
 
     return values
+
+
+def get_adjv_for_date(values, d):
+    return values[d]

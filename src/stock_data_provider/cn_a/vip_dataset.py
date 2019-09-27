@@ -20,7 +20,8 @@ import pandas as pd
 import datetime
 import numpy
 
-from . import tushare_adjfactor as adj
+#from . import tushare_adjfactor as adj
+from . import baostock_adjfactor as adj
 from .cna_calendar import CNAExchangeCalendar
 
 
@@ -77,11 +78,15 @@ def process_stock_file(userinfo, stock_data_file):
 
 
 def normalize_data(vip_data, tushare_symbol):
+    s_data_path = os.path.normpath(os.path.join(data_path, tushare_symbol))
+
+    os.makedirs(s_data_path, exist_ok=True)
+
     values = adj.load_adjfactor(tushare_symbol, data_path)
 
     def adj_price(x, *args, **kwds):
         try:
-            adj_v = values[x.name]
+            adj_v = adj.get_adjv_for_date(values, x.name)
             v = [x['open'] * adj_v,
                     x['high'] * adj_v,
                     x['low'] * adj_v,
