@@ -52,10 +52,10 @@ def process_stock_file(userinfo, stock_data_file):
                     break
                 day = pd.to_datetime(d.date, format='%Y%m%d')
                 data_frame.append({'day':day,
-                                   'open':d.open_price,
-                                   'high':d.highest_price,
-                                   'low':d.lowest_price,
-                                   'close':d.close_price,
+                                   'open':d.open_price / 100,
+                                   'high':d.highest_price / 100,
+                                   'low':d.lowest_price / 100,
+                                   'close':d.close_price / 100,
                                    'volume':d.vol})
                 trading_date.append(day.tz_localize('UTC'))
             #end while
