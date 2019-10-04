@@ -1,6 +1,8 @@
 import importlib.util
 import os
 import sys
+from functools import lru_cache
+
 
 def load_module_from_file(module_file):
     if not os.path.isfile(module_file):
@@ -17,3 +19,11 @@ def load_module_from_file(module_file):
         new_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(new_module)
         return new_module
+
+
+@lru_cache(maxsize=42)
+def load_module_func(algo_module, name):
+    try:
+        return getattr(algo_module, name)
+    except AttributeError:
+        return None

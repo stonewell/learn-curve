@@ -3,9 +3,11 @@ import argparse
 import datetime
 import dateutil.relativedelta
 import logging
-import pandas as pd
 
-sys.dont_write_bytecode = True
+import numpy as np
+
+import pyfolio as pf
+from pyfolio import timeseries
 
 try:
     from . import module_loader
@@ -17,13 +19,16 @@ try:
 except:
     import algo_runner
 
+sys.dont_write_bytecode = True
+
 
 def valid_date(s):
-   try:
-       return datetime.datetime.strptime(s, "%Y%m%d").date()
-   except:
-       msg = "Not a valid date: '{0}'.".format(s)
-       raise argparse.ArgumentTypeError(msg)
+    try:
+        return datetime.datetime.strptime(s, "%Y%m%d").date()
+    except:
+        msg = "Not a valid date: '{0}'.".format(s)
+        raise argparse.ArgumentTypeError(msg)
+
 
 def valid_relative_date(s):
     if s.endswith('y'):
@@ -33,7 +38,8 @@ def valid_relative_date(s):
     elif s.endswith('d'):
         return dateutil.relativedelta.relativedelta(days=+int(s[:-1]))
     else:
-       raise argparse.ArgumentTypeError("Not a valid relative date: '{0}'.".format(s))
+        raise argparse.ArgumentTypeError("Not a valid relative date: '{0}'.".format(s))
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -59,6 +65,32 @@ def parse_arguments():
 
     return parser.parse_args()
 
+class Analyzer(object):
+    def __init__(self, obj_func_module, strategy):
+        super().__init__()
+
+        self.strategy_ = strategy
+        self.obj_func_module_ = obj_func_module
+        self.object_function_accept_ = module_loader.load_module_func(obj_func_module, 'accept')
+        self.object_function_better_ = module_loader.load_module_func(obj_func_module, 'better_results')
+        self.best_results_ = None
+
+    def analyze(self, context, results):
+        returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(results)
+
+        perf_stats = timeseries.perf_stats(returns,
+                                           positions=positions,
+                                           transactions=transactions)
+
+        logging.info(perf_stats)
+        logging.info("Sharpe Ratio:{}%".format(np.round(perf_stats.loc['Sharpe ratio'] * 100)))
+
+        cur_results = (results, perf_stats)
+        if self.object_function_accept_(cur_results) and self.object_function_better_(cur_results, self.best_results_):
+            self.best_results_ = cur_results
+            self.strategy_.save_parameter_set()
+
+
 if __name__ == '__main__':
     args = parse_arguments()
 
@@ -80,13 +112,30 @@ if __name__ == '__main__':
     logging.debug('object_function:{}'.format(args.object_function))
     logging.debug('data_provider:{}'.format(args.stock_data_provider))
 
-    strategy = module_loader.load_module_from_file(args.strategy)
-    object_function = module_loader.load_module_from_file(args.object_function)
+    strategy_module = module_loader.load_module_from_file(args.strategy)
+    object_function_module = module_loader.load_module_from_file(args.object_function)
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
 
-    runner = algo_runner.AlgoRunner(strategy, object_function, stock_data_provider, 100000.0, args)
-    #runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
-    #           ,end_date=pd.to_datetime('2017-01-01', utc=True)
-    runner.run(args.stock_ids, start_date=args.optimize_range[0]
-               , end_date=args.optimize_range[1]
-    )
+    strategy = module_loader.load_module_func(strategy_module, 'create_strategy')()
+
+    analyzer = Analyzer(object_function_module, strategy)
+
+    runner = algo_runner.AlgoRunner(strategy, stock_data_provider, 100000.0, args)
+
+    best_results = None
+
+    while(True):
+        runner.run(args.stock_ids,
+                   start_date=args.optimize_range[0],
+                   end_date=args.optimize_range[1],
+                   analyze_func=analyzer.analyze)
+
+        if not strategy.next_parameter_set():
+            break;
+
+    results, perf_stats = analyzer.best_results_
+
+    logging.info('Best results:{}'.format(perf_stats))
+    logging.info('optimized strategy:{}'.format(strategy))
+
+    # do wfa analyze

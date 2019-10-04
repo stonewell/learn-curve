@@ -1,26 +1,18 @@
-import os
 import sys
 import logging
-from functools import lru_cache
-
-import numpy as np
 
 import pandas as pd
 import pytz
 
-import pyfolio as pf
-from pyfolio import timeseries
-
 from zipline import run_algorithm
+
+try:
+    from . import module_loader
+except:
+    import module_loader
 
 sys.dont_write_bytecode = True
 
-@lru_cache(maxsize=42)
-def _load_module_func(algo_module, name):
-    try:
-        return getattr(algo_module, name)
-    except AttributeError:
-        return None
 
 def _create_pd_panel(all_data):
     trading_data = {}
@@ -33,80 +25,44 @@ def _create_pd_panel(all_data):
 
     return panel
 
-def _general_analyze(perf_data):
-    returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(perf_data)
-
-    perf_stats = timeseries.perf_stats(returns,
-                                       positions=positions,
-                                       transactions=transactions)
-
-    logging.info(perf_stats)
-    logging.info("Sharpe Ratio:{}%".format(np.round(perf_stats.loc['Sharpe ratio'] * 100)))
-    perf_data.to_pickle('output.pickle')
 
 class AlgoRunner(object):
-    def __init__(self, algo, obj_func, stock_data_provider, capital_base, parameters):
-        self.initialize_ = _load_module_func(algo, "initialize")
-        self.handle_data_ = _load_module_func(algo, "handle_data")
-        self.before_trading_start_ = _load_module_func(algo, "before_trading_start")
-        self.analyze_ = _load_module_func(algo, "analyze")
+    def __init__(self, algo, stock_data_provider, capital_base, parameters):
         self.algo_ = algo
 
-        self.obj_func_ = obj_func
-
         self.stock_data_provider_ = stock_data_provider
-        self.load_data = _load_module_func(stock_data_provider, 'load_stock_data')
+        self.load_data = module_loader.load_module_func(stock_data_provider,
+                                                        'load_stock_data')
 
         self.capital_base_ = capital_base
         self.parameters_ = parameters
 
 
-    def run(self, symbols, start_date = None, end_date = None, analyze_func = None):
+    def run(self, symbols, start_date=None, end_date=None, analyze_func=None):
         data = []
         for symbol in symbols:
             data.append(self.load_data(symbol))
 
         start_date = pd.to_datetime(start_date, utc=True)
         end_date = pd.to_datetime(end_date, utc=True)
-        setattr(self.algo_, 'symbol_ids', symbols)
 
         panel = _create_pd_panel(data)
 
         def tmp_analyze_func(context=None, results=None):
             if analyze_func is not None:
-                analyze_func(results)
-            elif self.analyze_ is not None:
-                self.analyze_(context, results)
+                analyze_func(context, results)
             else:
-                _general_analyze(results)
+                self.algo_.analyze(context, results)
 
         perf_data = run_algorithm(start=start_date,
                                   end=end_date,
                                   trading_calendar=data[0].trading_cal,
                                   data=panel,
                                   capital_base=self.capital_base_,
-                                  initialize=self.initialize_,
-                                  handle_data=self.handle_data_,
-                                  before_trading_start=self.before_trading_start_,
+                                  initialize=lambda context: self.algo_.initialize(context, symbols),
+                                  handle_data=lambda context, data: self.algo_.handle_data(context, data),
+                                  before_trading_start=lambda context, data: self.algo_.before_trading_start(context, data),
                                   analyze=tmp_analyze_func,
                                   default_extension=False)
 
         return perf_data
-
-
-if __name__ == '__main__':
-    logging.getLogger('').setLevel(logging.INFO)
-    data = _load_data(600019)
-
-    logging.debug('vip data:\n{}'.format(data.data_frame.tail()))
-    logging.debug('vip data holidays:\n{}'.format(data.holidays[:10]))
-
-    from cn_a.algos import dual_ema_talib as algo
-
-    runner = AlgoRunner(algo, 100000.0)
-    runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
-               ,end_date=pd.to_datetime('2017-01-01', utc=True)
-    )
-    #runner.run(600019, start_date=pd.to_datetime('2015-01-01', utc=True)
-    #           ,end_date=pd.to_datetime('2017-01-01', utc=True)
-    #           , analyze_func=lambda x:algo.__analyze(None, x))
