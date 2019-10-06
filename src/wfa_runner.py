@@ -91,6 +91,26 @@ class Analyzer(object):
             self.strategy_.save_parameter_set()
 
 
+def validate_args(args):
+    if args.data_range[0] >= args.data_range[1]:
+        raise argparse.ArgumentTypeError('invalid data range:{}'.format(args.data_range))
+
+    if args.optimize_range[0] >= args.optimize_range[1]:
+        raise argparse.ArgumentTypeError('invalid optimize range:{}'.format(args.optimize_range))
+
+    if (args.optimize_range[0] < args.data_range[0] or
+        args.optimize_range[0] >= args.data_range[1] or
+        args.optimize_range[1] <= args.data_range[0] or
+        args.optimize_range[0] > args.data_range[1]):
+        raise argparse.ArgumentTypeError('invalid optimize range:{}, data range:{}'.format(args.optimize_range, args.data_range))
+
+    if (args.optimize_range[1] + args.wfa_size <= args.optimize_range[1]):
+        raise argparse.ArgumentTypeError('invalid wfa size:{}'.format(args.wfa_size))
+
+    if (args.optimize_range[1] + args.wfa_size > args.data_range[1]):
+        raise argparse.ArgumentTypeError('invalid wfa size:{}'.format(args.wfa_size))
+
+
 if __name__ == '__main__':
     args = parse_arguments()
 
@@ -112,6 +132,8 @@ if __name__ == '__main__':
     logging.debug('object_function:{}'.format(args.object_function))
     logging.debug('data_provider:{}'.format(args.stock_data_provider))
 
+    validate_args(args)
+
     strategy_module = module_loader.load_module_from_file(args.strategy)
     object_function_module = module_loader.load_module_from_file(args.object_function)
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
@@ -125,17 +147,40 @@ if __name__ == '__main__':
     best_results = None
 
     while(True):
+        logging.info('running strategy:{}'.format(strategy))
         runner.run(args.stock_ids,
                    start_date=args.optimize_range[0],
                    end_date=args.optimize_range[1],
                    analyze_func=analyzer.analyze)
 
         if not strategy.next_parameter_set():
-            break;
+            break
 
     results, perf_stats = analyzer.best_results_
 
     logging.info('Best results:{}'.format(perf_stats))
+
+    strategy.restore_parameter_set()
     logging.info('optimized strategy:{}'.format(strategy))
 
     # do wfa analyze
+    wfa_begin = args.optimize_range[1]
+    wfa_end = wfa_begin + args.wfa_size
+
+    while (True):
+        logging.info('running wfa on out of sample data:{}=>{}'.format(wfa_begin, wfa_end))
+
+        runner.run(args.stock_ids,
+                   start_date=wfa_begin,
+                   end_date=wfa_end,
+                   analyze_func=None)
+
+        wfa_begin = wfa_end
+        wfa_end = wfa_begin + args.wfa_size
+
+        if wfa_begin >= args.data_range[1]:
+            break
+
+        if wfa_end > args.data_range[1]:
+            wfa_end = args.data_range[1]
+        logging.info('next wfa:{}=>{}'.format(wfa_begin, wfa_end))

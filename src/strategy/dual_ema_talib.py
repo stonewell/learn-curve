@@ -27,7 +27,7 @@ from zipline.api import order, order_target_percent
 from zipline.api import set_benchmark
 from zipline.finance import commission, slippage
 
-from talib import EMA
+from talib import EMA, MA
 
 from .strategy_base import StrategyBase
 
@@ -39,6 +39,14 @@ def create_strategy():
 class DualEmaTaLib(StrategyBase):
     def __init__(self):
         super().__init__()
+
+        self.short_ema_value_ = 3
+        self.long_ema_value_ = 7
+        self.short_ema_step_ = 2
+        self.long_ema_step_ = 4
+        self.long_ema_max_ = 40
+
+        self.saved_parameter_set = (self.short_ema_value_, self.long_ema_value_)
 
     def initialize(self, context, stock_ids):
         super().initialize(context, stock_ids)
@@ -57,13 +65,13 @@ class DualEmaTaLib(StrategyBase):
             context.stock_shares[asset] = 0
 
     def handle_single_asset_data(self, context, asset, data):
-        trailing_window = data.history(asset, 'price', 80, '1d')
+        trailing_window = data.history(asset, 'price', self.long_ema_value_ * 3, '1d')
 
         if trailing_window.isnull().values.any():
             return
 
-        short_ema = EMA(trailing_window.values, timeperiod=13)
-        long_ema = EMA(trailing_window.values, timeperiod=26)
+        short_ema = EMA(trailing_window.values, timeperiod=self.short_ema_value_)
+        long_ema = EMA(trailing_window.values, timeperiod=self.long_ema_value_)
 
         vv = data.history(asset, ['high', 'low'], 5, '1d')
 
@@ -81,8 +89,8 @@ class DualEmaTaLib(StrategyBase):
         if context.price_highest[asset] < pv:
             context.price_highest[asset] = pv - vvv
 
-        #trailing_stop = MA(trailing_window.values, timeperiod=3)[-1] < context.price_highest[asset]
-        #_short = _short or (context.portfolio_highest[asset] > pv) or trailing_stop
+        trailing_stop = MA(trailing_window.values, timeperiod=3)[-1] < context.price_highest[asset]
+        _short = _short or (context.portfolio_highest[asset] > pv) or trailing_stop
 
         pct_per_stock = 1.0 / len(context.assets)
         cash = context.portfolio.cash * pct_per_stock
@@ -115,3 +123,17 @@ class DualEmaTaLib(StrategyBase):
     #       long_ema=long_ema[-1],
     #       buy=buy,
     #       sell=sell)
+    def next_parameter_set(self):
+        self.short_ema_value_ += self.short_ema_step_
+        self.long_ema_value_ += self.long_ema_step_
+
+        return self.long_ema_value_ < self.long_ema_max_
+
+    def save_parameter_set(self):
+        self.saved_parameter_set = (self.short_ema_value_, self.long_ema_value_)
+
+    def restore_parameter_set(self):
+        self.short_ema_value_, self.long_ema_value_ = self.saved_parameter_set
+
+    def __repr__(self):
+        return 'DualEmaTaLib with short ema:{}, long ema:{}'.format(self.short_ema_value_, self.long_ema_value_)
