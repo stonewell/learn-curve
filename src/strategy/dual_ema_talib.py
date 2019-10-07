@@ -40,11 +40,14 @@ class DualEmaTaLib(StrategyBase):
     def __init__(self):
         super().__init__()
 
-        self.short_ema_value_ = 3
-        self.long_ema_value_ = 7
+        self.short_ema_min_ = 3
+        self.long_ema_min_ = 7
         self.short_ema_step_ = 2
         self.long_ema_step_ = 4
         self.long_ema_max_ = 40
+
+        self.__gen_next_parameter_set = self.__next_parameter_set()
+        self.next_parameter_set()
 
         self.saved_parameter_set = (self.short_ema_value_, self.long_ema_value_)
 
@@ -124,10 +127,16 @@ class DualEmaTaLib(StrategyBase):
     #       buy=buy,
     #       sell=sell)
     def next_parameter_set(self):
-        self.short_ema_value_ += self.short_ema_step_
-        self.long_ema_value_ += self.long_ema_step_
+        return next(self.__gen_next_parameter_set)
 
-        return self.long_ema_value_ < self.long_ema_max_
+    def __next_parameter_set(self):
+        self.parameter_set_ = list((x, y) for x in range(self.short_ema_min_, self.long_ema_max_, self.short_ema_step_) \
+                    for y in range(self.long_ema_min_, self.long_ema_max_, self.long_ema_step_) if x < y)
+
+        for self.short_ema_value_, self.long_ema_value_ in self.parameter_set_:
+            yield True
+
+        yield False
 
     def save_parameter_set(self):
         self.saved_parameter_set = (self.short_ema_value_, self.long_ema_value_)
