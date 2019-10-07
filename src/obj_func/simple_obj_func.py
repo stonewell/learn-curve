@@ -3,7 +3,24 @@
 
 
 def accept(results):
-    return True
+    cur_results, perf_stats = results
+
+    return perf_stats['Annual return'] > 0
+
 
 def better_results(cur_results, prev_results):
-    return True
+    if prev_results is None:
+        return True
+
+    results, perf_stats = cur_results
+    prev_results, prev_perf_stats = prev_results
+
+    delta = perf_stats['Annual return'] - prev_perf_stats['Annual return']
+
+    if delta > 0.01:
+        return True
+
+    if delta >= -0.01:
+        return abs(perf_stats['Max drawdown']) < abs(prev_perf_stats['Max drawdown'])
+
+    return False
