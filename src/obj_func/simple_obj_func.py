@@ -17,6 +17,15 @@ def better_results(cur_results, prev_results):
 
     delta = perf_stats['Annual return'] - prev_perf_stats['Annual return']
 
+    max_drawdown_delta = perf_stats['Max drawdown'] - prev_perf_stats['Max drawdown']
+    max_drawdown_delta2 = prev_perf_stats['Max drawdown'] - perf_stats['Max drawdown']
+
+    if max_drawdown_delta > 0.05:
+        return True
+
+    if max_drawdown_delta2 > 0.05:
+        return False
+
     if delta > 0.01:
         return True
 
