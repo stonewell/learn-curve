@@ -46,11 +46,6 @@ class DualEmaTaLib(StrategyBase):
         self.long_ema_step_ = 4
         self.long_ema_max_ = 40
 
-        self.__gen_next_parameter_set = self.__next_parameter_set()
-        self.next_parameter_set()
-
-        self.saved_parameter_set = (self.short_ema_value_, self.long_ema_value_)
-
     def initialize(self, context, stock_ids):
         super().initialize(context, stock_ids)
 
@@ -68,13 +63,15 @@ class DualEmaTaLib(StrategyBase):
             context.stock_shares[asset] = 0
 
     def handle_single_asset_data(self, context, asset, data):
-        trailing_window = data.history(asset, 'price', self.long_ema_value_ * 3, '1d')
+        short_ema_value, long_ema_value = self.current_parameter_
+
+        trailing_window = data.history(asset, 'price', long_ema_value * 3, '1d')
 
         if trailing_window.isnull().values.any():
             return
 
-        short_ema = EMA(trailing_window.values, timeperiod=self.short_ema_value_)
-        long_ema = EMA(trailing_window.values, timeperiod=self.long_ema_value_)
+        short_ema = EMA(trailing_window.values, timeperiod=short_ema_value)
+        long_ema = EMA(trailing_window.values, timeperiod=long_ema_value)
 
         vv = data.history(asset, ['high', 'low'], 5, '1d')
 
@@ -126,23 +123,14 @@ class DualEmaTaLib(StrategyBase):
     #       long_ema=long_ema[-1],
     #       buy=buy,
     #       sell=sell)
-    def next_parameter_set(self):
-        return next(self.__gen_next_parameter_set)
-
-    def __next_parameter_set(self):
-        self.parameter_set_ = list((x, y) for x in range(self.short_ema_min_, self.long_ema_max_, self.short_ema_step_) \
+    def parameter_set(self):
+        parameter_set = list((x, y) for x in range(self.short_ema_min_, self.long_ema_max_, self.short_ema_step_) \
                     for y in range(self.long_ema_min_, self.long_ema_max_, self.long_ema_step_) if x < y)
 
-        for self.short_ema_value_, self.long_ema_value_ in self.parameter_set_:
-            yield True
+        for value in parameter_set:
+            yield value
 
-        yield False
-
-    def save_parameter_set(self):
-        self.saved_parameter_set = (self.short_ema_value_, self.long_ema_value_)
-
-    def restore_parameter_set(self):
-        self.short_ema_value_, self.long_ema_value_ = self.saved_parameter_set
 
     def __repr__(self):
-        return 'DualEmaTaLib with short ema:{}, long ema:{}'.format(self.short_ema_value_, self.long_ema_value_)
+        short_ema_value, long_ema_value = self.current_parameter_ if self.current_parameter_ is not None else (None, None)
+        return 'DualEmaTaLib with short ema:{}, long ema:{}'.format(short_ema_value, long_ema_value)

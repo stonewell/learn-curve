@@ -10,7 +10,8 @@ from pyfolio import timeseries
 
 class StrategyBase(object):
     def __init__(self):
-        pass
+        super().__init__()
+        self.current_parameter_ = None
 
     def initialize(self, context, stock_ids):
         context.assets = [symbol(id) for id in stock_ids]
@@ -35,11 +36,13 @@ class StrategyBase(object):
     def before_trading_start(self, context, data):
         pass
 
-    def next_parameter_set(self):
-        return False
+    def parameter_set(self):
+        return list()
 
-    def save_parameter_set(self):
-        pass
+    def __get_current_parameter(self):
+        return self.current_parameter_
 
-    def restore_parameter_set(self):
-        pass
+    def __set_current_parameter(self, parameter):
+        self.current_parameter_ = parameter
+
+    current_parameter = property(__get_current_parameter, __set_current_parameter)

@@ -1,8 +1,9 @@
 import sys
 import argparse
 import datetime
-import dateutil.relativedelta
 import logging
+import dateutil.relativedelta
+import multiprocessing as mp
 
 import numpy as np
 
@@ -48,6 +49,8 @@ def parse_arguments():
     parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0')
     parser.add_argument("-s", "--stock_id", help="stock ids to process", action="append", required=True, dest="stock_ids")
 
+    parser.add_argument("--capital_base", help="initial capital base value, default 100000.0",
+                        type=float, default=100000.0)
     parser.add_argument("--data_range", help="stock data range", nargs=2, required=True,
                         type=valid_date,
                         metavar=('<begin date>', '<end date>'))
@@ -64,32 +67,6 @@ def parse_arguments():
                         type=str, metavar='<name>')
 
     return parser.parse_args()
-
-class Analyzer(object):
-    def __init__(self, obj_func_module, strategy):
-        super().__init__()
-
-        self.strategy_ = strategy
-        self.obj_func_module_ = obj_func_module
-        self.object_function_accept_ = module_loader.load_module_func(obj_func_module, 'accept')
-        self.object_function_better_ = module_loader.load_module_func(obj_func_module, 'better_results')
-        self.best_results_ = None
-
-    def analyze(self, context, results):
-        returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(results)
-
-        perf_stats = timeseries.perf_stats(returns,
-                                           positions=positions,
-                                           transactions=transactions)
-
-        logging.info(perf_stats)
-        logging.info("Sharpe Ratio:{}%".format(np.round(perf_stats.loc['Sharpe ratio'] * 100)))
-
-        cur_results = (results, perf_stats)
-        if self.object_function_accept_(cur_results) and self.object_function_better_(cur_results, self.best_results_):
-            self.best_results_ = cur_results
-            self.strategy_.save_parameter_set()
-
 
 def validate_args(args):
     if args.data_range[0] >= args.data_range[1]:
@@ -111,7 +88,66 @@ def validate_args(args):
         raise argparse.ArgumentTypeError('invalid wfa size:{}'.format(args.wfa_size))
 
 
-if __name__ == '__main__':
+class Analyzer(object):
+    def __init__(self, obj_func_module):
+        super().__init__()
+
+        self.parameter_ = None
+        self.obj_func_module_ = obj_func_module
+        self.object_function_accept_ = module_loader.load_module_func(obj_func_module, 'accept')
+        self.object_function_better_ = module_loader.load_module_func(obj_func_module, 'better_results')
+        self.best_results_ = None
+
+    def analyze(self, result):
+        for parameter, results in result:
+            if results is None:
+                continue
+            returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(results)
+
+            perf_stats = timeseries.perf_stats(returns,
+                                               positions=positions,
+                                               transactions=transactions)
+
+            logging.info(perf_stats)
+            logging.info("Sharpe Ratio:{}%".format(np.round(perf_stats.loc['Sharpe ratio'] * 100)))
+
+            cur_results = (results, perf_stats)
+            if self.object_function_accept_(cur_results) and self.object_function_better_(cur_results, self.best_results_):
+                self.best_results_ = cur_results
+                self.parameter_ = parameter
+
+def algo_running_worker(args, parameter):
+    strategy_module = module_loader.load_module_from_file(args.strategy)
+    stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
+
+    create_strategy = module_loader.load_module_func(strategy_module, 'create_strategy')
+    strategy = create_strategy()
+
+    runner = algo_runner.AlgoRunner(stock_data_provider, args.capital_base, args)
+    symbols = args.stock_ids
+    start_date = args.optimize_range[0]
+    end_date = args.optimize_range[1]
+
+    def tmp_analyze_func(context=None, results=None):
+        pass
+
+    strategy.current_parameter = parameter
+
+    logging.info('running strategy:%s', strategy)
+
+    try:
+        perf_data = runner.run(strategy,
+                               symbols,
+                               start_date=start_date,
+                               end_date=end_date,
+                               analyze_func=tmp_analyze_func)
+
+        return (parameter, perf_data)
+    except:
+        logging.exception('running strategy:%s failed', strategy)
+        return (parameter, None)
+
+def wfa_runner_main():
     args = parse_arguments()
 
     if args.debug is None:
@@ -138,39 +174,45 @@ if __name__ == '__main__':
     object_function_module = module_loader.load_module_from_file(args.object_function)
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
 
-    strategy = module_loader.load_module_func(strategy_module, 'create_strategy')()
+    create_strategy = module_loader.load_module_func(strategy_module, 'create_strategy')
+    strategy = create_strategy()
 
-    analyzer = Analyzer(object_function_module, strategy)
+    analyzer = Analyzer(object_function_module)
 
-    runner = algo_runner.AlgoRunner(strategy, stock_data_provider, 100000.0, args)
+    runner = algo_runner.AlgoRunner(stock_data_provider, args.capital_base, args)
 
-    best_results = None
+    pool = mp.Pool(mp.cpu_count())
 
-    while(True):
-        logging.info('running strategy:{}'.format(strategy))
-        runner.run(args.stock_ids,
-                   start_date=args.optimize_range[0],
-                   end_date=args.optimize_range[1],
-                   analyze_func=analyzer.analyze)
+    parameter_set = strategy.parameter_set()
 
-        if not strategy.next_parameter_set():
-            break
+    pool.starmap_async(algo_running_worker,
+                       list((args, parameter) for parameter in parameter_set),
+                       callback=analyzer.analyze,
+                       error_callback=lambda x:logging.error('startmap async failed:%s', x))
 
-    results, perf_stats = analyzer.best_results_
+    pool.close()
+    pool.join()
 
-    logging.info('Best results:{}'.format(perf_stats))
+    if analyzer.best_results_ is None:
+        logging.error('non parameter of strategy:[%s] is suitable for the stock:%s', strategy, args.stock_ids)
+        return
 
-    strategy.restore_parameter_set()
-    logging.info('optimized strategy:{}'.format(strategy))
+    perf_stats = analyzer.best_results_[1]
+
+    logging.info('Best results:%s', perf_stats)
+
+    strategy.current_parameter = analyzer.parameter_
+    logging.info('optimized strategy:%s', strategy)
 
     # do wfa analyze
     wfa_begin = args.optimize_range[1]
     wfa_end = wfa_begin + args.wfa_size
 
-    while (True):
-        logging.info('running wfa on out of sample data:{}=>{}'.format(wfa_begin, wfa_end))
+    while True:
+        logging.info('running wfa on out of sample data:%s=>%s', wfa_begin, wfa_end)
 
-        runner.run(args.stock_ids,
+        runner.run(strategy,
+                   args.stock_ids,
                    start_date=wfa_begin,
                    end_date=wfa_end,
                    analyze_func=None)
@@ -183,4 +225,7 @@ if __name__ == '__main__':
 
         if wfa_end > args.data_range[1]:
             wfa_end = args.data_range[1]
-        logging.info('next wfa:{}=>{}'.format(wfa_begin, wfa_end))
+        logging.info('next wfa:%s=>%s', wfa_begin, wfa_end)
+
+if __name__ == '__main__':
+    wfa_runner_main()
