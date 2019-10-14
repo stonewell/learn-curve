@@ -22,7 +22,6 @@ except:
 
 sys.dont_write_bytecode = True
 
-
 def valid_date(s):
     try:
         return datetime.datetime.strptime(s, "%Y%m%d").date()
@@ -65,6 +64,8 @@ def parse_arguments():
                         type=str, metavar='<name>')
     parser.add_argument("--stock_data_provider", help="data provider for stock data", required=True,
                         type=str, metavar='<name>')
+    parser.add_argument("--no_pool", help="do not run with pool",
+                        action='store_true')
 
     return parser.parse_args()
 
@@ -108,8 +109,10 @@ class Analyzer(object):
                                                positions=positions,
                                                transactions=transactions)
 
+            logging.info("Parameter:%s", parameter)
             logging.info(perf_stats)
             logging.info("Sharpe Ratio:{}%".format(np.round(perf_stats.loc['Sharpe ratio'] * 100)))
+            logging.info("")
 
             cur_results = (results, perf_stats)
             if self.object_function_accept_(cur_results) and self.object_function_better_(cur_results, self.best_results_):
@@ -185,19 +188,23 @@ def wfa_runner_main():
 
     parameter_set = strategy.parameter_set()
 
-    pool.starmap_async(algo_running_worker,
-                       list((args, parameter) for parameter in parameter_set),
-                       callback=analyzer.analyze,
-                       error_callback=lambda x:logging.error('startmap async failed:%s', x))
+    if args.no_pool:
+        for parameter in parameter_set:
+            analyzer.analyze([algo_running_worker(args, parameter)])
+    else:
+        pool.starmap_async(algo_running_worker,
+                           list((args, parameter) for parameter in parameter_set),
+                           callback=analyzer.analyze,
+                           error_callback=lambda x:logging.error('startmap async failed:%s', x))
 
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
 
     if analyzer.best_results_ is None:
         logging.error('non parameter of strategy:[%s] is suitable for the stock:%s', strategy, args.stock_ids)
         return
 
-    perf_stats = analyzer.best_results_[1]
+    results, perf_stats = analyzer.best_results_
 
     logging.info('Best results:%s', perf_stats)
 
@@ -211,11 +218,14 @@ def wfa_runner_main():
     while True:
         logging.info('running wfa on out of sample data:%s=>%s', wfa_begin, wfa_end)
 
-        runner.run(strategy,
-                   args.stock_ids,
-                   start_date=wfa_begin,
-                   end_date=wfa_end,
-                   analyze_func=None)
+        try:
+            runner.run(strategy,
+                       args.stock_ids,
+                       start_date=wfa_begin,
+                       end_date=wfa_end,
+                       analyze_func=None)
+        except:
+            logging.exception('failed running wfa on out of sample data:%s=>%s', wfa_begin, wfa_end)
 
         wfa_begin = wfa_end
         wfa_end = wfa_begin + args.wfa_size
@@ -228,4 +238,5 @@ def wfa_runner_main():
         logging.info('next wfa:%s=>%s', wfa_begin, wfa_end)
 
 if __name__ == '__main__':
+    mp.set_start_method('forkserver')
     wfa_runner_main()

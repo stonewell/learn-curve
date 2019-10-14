@@ -46,3 +46,44 @@ class StrategyBase(object):
         self.current_parameter_ = parameter
 
     current_parameter = property(__get_current_parameter, __set_current_parameter)
+
+    def lh_cross_n_days(self, v1, v2, n):
+        for i in range(n - 1):
+            v = (
+                all([v1[x] >= v1[i] for x in range(i + 1, n)])
+                and all([v1[x] >= v2[x] for x in range(i, n)])
+                )
+
+            if v:
+                return True
+
+        return False
+
+    def hl_cross_n_days(self, v1, v2, n):
+        for i in range(n - 1):
+            v = (
+                True
+                and all([v1[x] <= v1[i] for x in range(i + 1, n)])
+                and all([v1[x] <= v2[x] for x in range(i, n)])
+                )
+
+            if v:
+                return True
+
+        return False
+
+    def kdj(self, data, asset, n):
+        trailing_window = data.history(asset, 'price', n * 3, '1d')
+        high_trailing_window = data.history(asset, 'high', n * 3, '1d')
+        low_trailing_window = data.history(asset, 'low', n * 3, '1d')
+
+        low_list = low_trailing_window.rolling(window=n).min()
+        high_list = high_trailing_window.rolling(window=n).max()
+
+        rsv = (trailing_window - low_list) / (high_list - low_list) * 100
+        k = rsv.ewm(com=2, adjust=False).mean()
+        d = k.ewm(com=2, adjust=False).mean()
+
+        j = 3 * k - 2 * d
+
+        return (k, d, j)
