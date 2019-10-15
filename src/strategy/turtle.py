@@ -7,7 +7,7 @@ from zipline.finance import commission, slippage
 from .strategy_base import StrategyBase
 
 
-def create_strategy():
+def create_strategy(args):
     return Turtle()
 
 

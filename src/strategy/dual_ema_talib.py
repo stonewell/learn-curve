@@ -32,7 +32,7 @@ from talib import EMA, MA
 from .strategy_base import StrategyBase
 
 
-def create_strategy():
+def create_strategy(args):
     return DualEmaTaLib()
 
 

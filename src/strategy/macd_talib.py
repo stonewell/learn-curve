@@ -4,12 +4,12 @@ from zipline.api import order, order_target_percent
 from zipline.api import set_benchmark, get_datetime
 from zipline.finance import commission, slippage
 
-from talib import MACD, MA, MFI, TRIX
+from talib import MACD, MA
 
 from .strategy_base import StrategyBase
 
 
-def create_strategy():
+def create_strategy(args):
     return MacdTaLib()
 
 
@@ -23,11 +23,17 @@ class MacdTaLib(StrategyBase):
         self.long_ema_step_ = 1
         self.ema_max_ = 40
 
+        self.buy_price_confirm_days_ = 2
+        self.buy_price_confirm_ma_days_ = 2
+
+        self.sell_price_confirm_days_ = 2
+        self.sell_price_confirm_ma_days_ = 40
+
     def initialize(self, context, stock_ids):
         super().initialize(context, stock_ids)
 
+        context.portfolio_origin = {}
         context.portfolio_highest = {}
-        context.price_highest = {}
         context.stock_shares = {}
 
         context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
@@ -35,12 +41,18 @@ class MacdTaLib(StrategyBase):
         set_benchmark(context.assets[0])
 
         for asset in context.assets:
-            context.price_highest[asset] = 0.0
             context.portfolio_highest[asset] = 0.0
+            context.portfolio_origin[asset] = 0.0
             context.stock_shares[asset] = 0
 
     def handle_single_asset_data(self, context, asset, data):
-        short_ema_value, long_ema_value, signal_value = self.current_parameter_
+        short_ema_value, \
+            long_ema_value, \
+            signal_value, \
+            self.buy_price_confirm_ma_days_, \
+            self.buf_price_confirm_days_, \
+            self.sell_price_confirm_ma_days_, \
+            self.sell_price_confirm_days_ = self.current_parameter_
 
         trailing_window = data.history(asset, 'price', long_ema_value * 3, '1d')
         high_trailing_window = data.history(asset, 'high', long_ema_value * 3, '1d')
@@ -55,23 +67,10 @@ class MacdTaLib(StrategyBase):
                                                slowperiod=long_ema_value,
                                                signalperiod=signal_value)
 
-        mfi = MFI(high_trailing_window.values,
-                  low_trailing_window.values,
-                  trailing_window.values,
-                  volume_trailing_window.values,
-                  timeperiod=14)
-
-        mfi_ma6 = MA(mfi, 6)
-
-        trix = TRIX(trailing_window.values,
-                    timeperiod=12)
-
-        trix_ma20 = MA(trix, 20)
-
         ma10 = MA(trailing_window.values, 10)
         ma5 = MA(trailing_window.values, 5)
-        ma2 = MA(trailing_window.values, 2)
-        ma40 = MA(trailing_window.values, 40)
+        ma2 = MA(trailing_window.values, self.buy_price_confirm_ma_days_)
+        ma40 = MA(trailing_window.values, self.sell_price_confirm_ma_days_)
 
         v_ma10 = MA(volume_trailing_window.values, 10)
         v_ma5 = MA(volume_trailing_window.values, 5)
@@ -80,65 +79,45 @@ class MacdTaLib(StrategyBase):
 
         _long = (
             True
-            #and macd[-1] > 0 and macd_signal[-1] > 0
-            #and macd[-2] > 0 and macd_signal[-2] > 0
             and self.lh_cross_n_days(macd[-5:], macd_signal[-5:], 5)
             and macd[-1] > macd_signal[-1] * 1.01
-            and trailing_window[-1] > ma2[-1]
-            #and macd[-1] > macd_signal[-1] and macd[-2] > macd_signal[-2]
-            #and macd[-1] > macd[-2]
-            #and macd[-3] < macd_signal[-1] and macd[-4] < macd_signal[-4]
-            #and ma5[-1] > ma10[-1] and ma5[-2] > ma10[-2]
-            #and mfi[-1] > mfi_ma6[-1] and mfi[-2] > mfi_ma6[-2]
-            #and trix[-1] > trix_ma20[-1]
-            #and trailing_window.values[-1] > ma10[-1] and trailing_window.values[-2] > ma10[-2]
+            and all(trailing_window[-1 * (i + 1)] > ma2[-1 * (i + 1)] for i in range(self.buy_price_confirm_days_))
             and self.lh_cross_n_days(ma5[-5:], ma10[-5:], 5)
             and self.lh_cross_n_days(v_ma5[-5:], v_ma10[-5:], 5)
             and not self.hl_cross_n_days(k[-5:], d[-5:], 5)
-            and not all([jj > 100 for jj in j[-3:]])
-                 )
+            and not all(jj > 100 for jj in j[-3:])
+        )
         _short = (
             True
-            #and macd[-1] < 0 and macd_signal[-1] < 0
-            #and macd[-2] < 0 and macd_signal[-2] < 0
-            #and ma5[-1] < ma10[-1] and ma5[-2] < ma10[-2]
-            #and macd[-1] < macd_signal[-1] and macd[-2] < macd_signal[-2]
-            #and macd[-1] < macd[-2]
             and self.hl_cross_n_days(macd[-5:], macd_signal[-5:], 5)
             and macd[-1] < macd_signal[-1] * .99
-            #and macd[-3] > macd_signal[-3] and macd[-4] > macd_signal[-4]
-            #and mfi[-1] < mfi_ma6[-1] and mfi[-2] < mfi_ma6[-2]
-            #and trix[-1] < trix_ma20[-1]
-            #and trailing_window.values[-1] < ma10[-1] and trailing_window.values[-2] < ma10[-2]
             and self.hl_cross_n_days(ma5[-5:], ma10[-5:], 5)
         )
 
         pv = data.current(asset, "price")
 
         if context.stock_shares[asset] > 0:
-            _short_high = context.stock_shares[asset] * pv >= context.portfolio_highest[asset] * 1.2
+            _short_high = context.stock_shares[asset] * pv >= context.portfolio_origin[asset] * 1.2
 
-            _short_low = not _long and (
-                False
-                # or context.stock_shares[asset] * pv * 1.1 < context.price_highest[asset]
-                or trailing_window[-1] < ma40[-1]
-            ) \
-            and not (context.stock_shares[asset] * pv > context.portfolio_highest[asset])
-
-            if pv > ma5[-1] and ma5[-1] > ma10[-1]:
-                #_short_high = False
-                #_short_low = False
-                pass
+            _short_low = (
+                not _long
+                and (
+                    False
+                    # or context.stock_shares[asset] * pv * 1.1 < context.portfolio_highest[asset]
+                    or all(trailing_window[-1 * (i + 1)] < ma40[-1 * (i + 1)]
+                           for i in range(self.sell_price_confirm_days_))
+                )
+            )
 
             _long = False
 
-            if context.price_highest[asset] < context.stock_shares[asset] * pv:
-                context.price_highest[asset] = context.stock_shares[asset] * pv
+            if context.portfolio_highest[asset] < context.stock_shares[asset] * pv:
+                context.portfolio_highest[asset] = context.stock_shares[asset] * pv
 
             if _short_high:
-                logging.debug('{} short because protfolio is high'.format(asset))
+                logging.debug('%s short because protfolio is high', asset)
             if _short_low:
-                logging.debug('{} short because protfolio is low'.format(asset))
+                logging.debug('%s short because protfolio is low', asset)
 
             _short = _short or _short_high or _short_low
 
@@ -149,17 +128,19 @@ class MacdTaLib(StrategyBase):
             number_of_shares = int(cash / pv)
             order(asset, number_of_shares)
             context.stock_shares[asset] = number_of_shares
-            context.portfolio_highest[asset] = number_of_shares * pv
-            context.price_highest[asset] = context.stock_shares[asset] * pv
-            logging.debug('{} buy {} shares at {} on:{}, j:{}'.format(asset, number_of_shares, pv, get_datetime(),
-                                                                              j.values[-3:]))
+            context.portfolio_origin[asset] = number_of_shares * pv
+            context.portfolio_highest[asset] = context.stock_shares[asset] * pv
+            logging.debug('%s buy %s shares at %s on:%s, j:%s',
+                          asset, number_of_shares, pv, get_datetime(),
+                          j.values[-3:])
         elif _short and context.stock_shares[asset] > 0:
             order_target_percent(asset, 0)
             number_of_shares = context.stock_shares[asset]
+            context.portfolio_origin[asset] = 0.0
             context.portfolio_highest[asset] = 0.0
-            context.price_highest[asset] = 0.0
             context.stock_shares[asset] = 0
-            logging.debug('{} sell {} shares at {} on:{}'.format(asset, number_of_shares, pv, get_datetime()))
+            logging.debug('%s sell %s shares at %s on:%s',
+                          asset, number_of_shares, pv, get_datetime())
 
     def parameter_set(self):
         #parameter_set = list((x, y, int((x+y)/4)) \
@@ -169,11 +150,21 @@ class MacdTaLib(StrategyBase):
 
         #for value in parameter_set:
         #    yield value
-        yield (12, 26, 9)
+
+        # x:buy ma, y: buf, z: sell ma, u: sell
+        parameter_set = list((x, y, z, u) \
+                             for x in range(2, 5) \
+                             for y in range(2, 5) \
+                             for z in range(10, 60, 5) \
+                             for u in range(2, 5)
+                             )
+
+        for x, y, z, u in parameter_set:
+            yield (12, 26, 9, x, y, z, u)
 
 
     def __repr__(self):
-        short_ema_value, long_ema_value, signal_value = \
-            self.current_parameter_ if self.current_parameter_ is not None else (None, None, None)
-        return 'MacdTaLib with short ema:{}, long ema:{}, signal:{}'.format(short_ema_value,
-                                                                            long_ema_value, signal_value)
+        short_ema_value, long_ema_value, signal_value, x, y, z, u = \
+            self.current_parameter_ if self.current_parameter_ is not None else (None, None, None, None, None, None, None)
+        return 'MacdTaLib with short ema:{}, long ema:{}, signal:{}, buy confirm_ma:{}, buf confirm:{}, sell confirm ma:{}, sell confirm:{}'.format(short_ema_value,
+                                                                                                                                                    long_ema_value, signal_value, x, y, z, u)

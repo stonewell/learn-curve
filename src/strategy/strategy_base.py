@@ -50,8 +50,8 @@ class StrategyBase(object):
     def lh_cross_n_days(self, v1, v2, n):
         for i in range(n - 1):
             v = (
-                all([v1[x] >= v1[i] for x in range(i + 1, n)])
-                and all([v1[x] >= v2[x] for x in range(i, n)])
+                all(v1[x] >= v1[i] for x in range(i + 1, n))
+                and all(v1[x] >= v2[x] for x in range(i, n))
                 )
 
             if v:
@@ -63,8 +63,8 @@ class StrategyBase(object):
         for i in range(n - 1):
             v = (
                 True
-                and all([v1[x] <= v1[i] for x in range(i + 1, n)])
-                and all([v1[x] <= v2[x] for x in range(i, n)])
+                and all(v1[x] <= v1[i] for x in range(i + 1, n))
+                and all(v1[x] <= v2[x] for x in range(i, n))
                 )
 
             if v:

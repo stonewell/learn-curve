@@ -124,7 +124,7 @@ def algo_running_worker(args, parameter):
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
 
     create_strategy = module_loader.load_module_func(strategy_module, 'create_strategy')
-    strategy = create_strategy()
+    strategy = create_strategy(args)
 
     runner = algo_runner.AlgoRunner(stock_data_provider, args.capital_base, args)
     symbols = args.stock_ids
@@ -178,7 +178,7 @@ def wfa_runner_main():
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
 
     create_strategy = module_loader.load_module_func(strategy_module, 'create_strategy')
-    strategy = create_strategy()
+    strategy = create_strategy(args)
 
     analyzer = Analyzer(object_function_module)
 
