@@ -33,6 +33,10 @@ class AlgoRunner(object):
 
         return panel
 
+    def ensure_stock_data(self, symbols):
+        for symbol in symbols:
+            self.load_data_(symbol)
+
     def run(self, algo, symbols, start_date=None, end_date=None, analyze_func=None):
         data = []
         for symbol in symbols:

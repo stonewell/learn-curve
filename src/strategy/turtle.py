@@ -13,7 +13,7 @@ def create_strategy(args):
 
 class Turtle(StrategyBase):
     def __init__(self):
-        super().__init__()
+        super().__init__('Turtle')
 
     def initialize(self, context, stock_ids):
         super().initialize(context, stock_ids)

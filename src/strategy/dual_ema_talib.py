@@ -38,7 +38,7 @@ def create_strategy(args):
 
 class DualEmaTaLib(StrategyBase):
     def __init__(self):
-        super().__init__()
+        super().__init__('DualEmaTaLib')
 
         self.short_ema_min_ = 3
         self.long_ema_min_ = 7

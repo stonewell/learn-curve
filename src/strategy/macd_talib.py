@@ -15,7 +15,7 @@ def create_strategy(args):
 
 class MacdTaLib(StrategyBase):
     def __init__(self):
-        super().__init__()
+        super().__init__('MacdTaLib')
 
         self.short_ema_min_ = 2
         self.long_ema_min_ = 6
@@ -153,15 +153,15 @@ class MacdTaLib(StrategyBase):
 
         # x:buy ma, y: buf, z: sell ma, u: sell
         parameter_set = list((x, y, z, u) \
-                             for x in range(2, 5) \
-                             for y in range(2, 5) \
-                             for z in range(10, 60, 5) \
-                             for u in range(2, 5)
+                             for x in range(2, 5 + 1) \
+                             for y in range(2, 5 + 1) \
+                             for z in range(10, 60 + 1, 5) \
+                             for u in range(2, 5 + 1)
                              )
 
         for x, y, z, u in parameter_set:
             yield (12, 26, 9, x, y, z, u)
-
+        #yield (13, 26, 9, 3, 2, 40, 2)
 
     def __repr__(self):
         short_ema_value, long_ema_value, signal_value, x, y, z, u = \

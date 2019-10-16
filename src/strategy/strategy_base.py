@@ -9,9 +9,10 @@ from pyfolio import timeseries
 
 
 class StrategyBase(object):
-    def __init__(self):
+    def __init__(self, name):
         super().__init__()
         self.current_parameter_ = None
+        self.name_ = name
 
     def initialize(self, context, stock_ids):
         context.assets = [symbol(id) for id in stock_ids]
@@ -46,6 +47,14 @@ class StrategyBase(object):
         self.current_parameter_ = parameter
 
     current_parameter = property(__get_current_parameter, __set_current_parameter)
+
+    def __get_name(self):
+        return self.name_
+
+    def __set_name(self, name):
+        self.name_ = name
+
+    name = property(__get_name, __set_name)
 
     def lh_cross_n_days(self, v1, v2, n):
         for i in range(n - 1):

@@ -1,9 +1,11 @@
+import os
 import sys
 import argparse
 import datetime
 import logging
-import dateutil.relativedelta
 import multiprocessing as mp
+import json
+import dateutil.relativedelta
 
 import numpy as np
 
@@ -21,6 +23,8 @@ except:
     import algo_runner
 
 sys.dont_write_bytecode = True
+
+data_path = os.path.join(os.path.dirname(__file__), "..", "data")
 
 def valid_date(s):
     try:
@@ -46,8 +50,8 @@ def parse_arguments():
 
     parser.add_argument("-d", "--debug", help="print debug information", action="count")
     parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0')
-    parser.add_argument("-s", "--stock_id", help="stock ids to process", action="append", required=True, dest="stock_ids")
-
+    parser.add_argument("-s", "--stock_id", help="stock ids to process",
+                        action="append", required=True, dest="stock_ids")
     parser.add_argument("--capital_base", help="initial capital base value, default 100000.0",
                         type=float, default=100000.0)
     parser.add_argument("--data_range", help="stock data range", nargs=2, required=True,
@@ -65,6 +69,10 @@ def parse_arguments():
     parser.add_argument("--stock_data_provider", help="data provider for stock data", required=True,
                         type=str, metavar='<name>')
     parser.add_argument("--no_pool", help="do not run with pool",
+                        action='store_true')
+    parser.add_argument("--load_optimized_parameter", help="load optimized parameter",
+                        action='store_true')
+    parser.add_argument("--skip_wfa", help="skip wfa running stage",
                         action='store_true')
 
     return parser.parse_args()
@@ -150,6 +158,38 @@ def algo_running_worker(args, parameter):
         logging.exception('running strategy:%s failed', strategy)
         return (parameter, None)
 
+def __get_optimized_parameter_file_path(stock_ids, strategy):
+    file_name = '_'.join(stock_ids) + '-' + strategy.name + '.json'
+
+    parameters_dir = os.path.abspath(os.path.join(data_path, 'parameters'))
+
+    if not os.path.exists(parameters_dir):
+        os.makedirs(parameters_dir)
+
+    return os.path.join(parameters_dir, file_name)
+
+def __save_optimized_parameter(stock_ids, strategy, perf_stats):
+    with open(__get_optimized_parameter_file_path(stock_ids, strategy), 'w') as f:
+        json.dump({'stock_ids': stock_ids,
+                   'strategy' : {
+                       'name': strategy.name,
+                       'parameter': strategy.current_parameter
+                       },
+                   'perf_stats': perf_stats.to_dict()
+                   }, f)
+
+
+def __load_optimized_parameter(stock_ids, strategy):
+    fn = __get_optimized_parameter_file_path(stock_ids, strategy)
+
+    if not os.path.exists(fn):
+        return None
+
+    with open(fn, 'r') as f:
+        obj = json.load(f)
+
+        return obj['strategy']['parameter']
+
 def wfa_runner_main():
     args = parse_arguments()
 
@@ -173,6 +213,9 @@ def wfa_runner_main():
 
     validate_args(args)
 
+    if args.load_optimized_parameter:
+        args.no_pool = True
+
     strategy_module = module_loader.load_module_from_file(args.strategy)
     object_function_module = module_loader.load_module_from_file(args.object_function)
     stock_data_provider = module_loader.load_module_from_file(args.stock_data_provider)
@@ -183,10 +226,21 @@ def wfa_runner_main():
     analyzer = Analyzer(object_function_module)
 
     runner = algo_runner.AlgoRunner(stock_data_provider, args.capital_base, args)
+    runner.ensure_stock_data(args.stock_ids)
 
     pool = mp.Pool(mp.cpu_count())
 
     parameter_set = strategy.parameter_set()
+
+    if args.load_optimized_parameter:
+        value = __load_optimized_parameter(args.stock_ids,
+                                           strategy)
+
+        if value is None:
+            logging.error('unable find optmized parameter')
+            return
+
+        parameter_set = list([value])
 
     if args.no_pool:
         for parameter in parameter_set:
@@ -195,7 +249,7 @@ def wfa_runner_main():
         pool.starmap_async(algo_running_worker,
                            list((args, parameter) for parameter in parameter_set),
                            callback=analyzer.analyze,
-                           error_callback=lambda x:logging.error('startmap async failed:%s', x))
+                           error_callback=lambda x:logging.error('starmap async failed:%s', x))
 
         pool.close()
         pool.join()
@@ -204,12 +258,18 @@ def wfa_runner_main():
         logging.error('non parameter of strategy:[%s] is suitable for the stock:%s', strategy, args.stock_ids)
         return
 
-    results, perf_stats = analyzer.best_results_
+    _, perf_stats = analyzer.best_results_
 
     logging.info('Best results:%s', perf_stats)
 
     strategy.current_parameter = analyzer.parameter_
     logging.info('optimized strategy:%s', strategy)
+
+    if not args.load_optimized_parameter:
+        __save_optimized_parameter(args.stock_ids, strategy, perf_stats)
+
+    if args.skip_wfa:
+        return
 
     # do wfa analyze
     wfa_begin = args.optimize_range[1]
