@@ -61,6 +61,7 @@ class StrategyBase(object):
             v = (
                 all(v1[x] >= v1[i] for x in range(i + 1, n))
                 and all(v1[x] >= v2[x] for x in range(i, n))
+                and max(v1[i:]) == v1[-1]
                 )
 
             if v:
@@ -96,3 +97,6 @@ class StrategyBase(object):
         j = 3 * k - 2 * d
 
         return (k, d, j)
+
+    def get_default_parameter(self):
+        return None

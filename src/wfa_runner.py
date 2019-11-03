@@ -74,6 +74,8 @@ def parse_arguments():
                         action='store_true')
     parser.add_argument("--skip_wfa", help="skip wfa running stage",
                         action='store_true')
+    parser.add_argument("--use_default_parameter", help="use strategy default parameter",
+                        action='store_true')
 
     return parser.parse_args()
 
@@ -237,7 +239,19 @@ def wfa_runner_main():
                                            strategy)
 
         if value is None:
-            logging.error('unable find optmized parameter')
+            value = strategy.get_default_parameter()
+
+            if value is None:
+                logging.error('unable find optmized parameter')
+                return
+
+        parameter_set = list([value])
+
+    if args.use_default_parameter:
+        value = strategy.get_default_parameter()
+
+        if value is None:
+            logging.error('unable find default parameter')
             return
 
         parameter_set = list([value])

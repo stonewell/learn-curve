@@ -97,7 +97,7 @@ class MacdTaLib(StrategyBase):
         pv = data.current(asset, "price")
 
         if context.stock_shares[asset] > 0:
-            _short_high = context.stock_shares[asset] * pv >= context.portfolio_origin[asset] * 1.2
+            _short_high = context.stock_shares[asset] * pv >= context.portfolio_origin[asset] * 1.15
 
             _short_low = (
                 not _long
@@ -125,14 +125,16 @@ class MacdTaLib(StrategyBase):
         cash = context.portfolio.cash * pct_per_stock
 
         if _long and cash > pv and context.stock_shares[asset] == 0:
-            number_of_shares = int(cash / pv)
-            order(asset, number_of_shares)
-            context.stock_shares[asset] = number_of_shares
-            context.portfolio_origin[asset] = number_of_shares * pv
-            context.portfolio_highest[asset] = context.stock_shares[asset] * pv
-            logging.debug('%s buy %s shares at %s on:%s, j:%s',
-                          asset, number_of_shares, pv, get_datetime(),
-                          j.values[-3:])
+            number_of_shares = int(cash / pv / 100) * 100
+
+            if number_of_shares > 0:
+                order(asset, number_of_shares)
+                context.stock_shares[asset] = number_of_shares
+                context.portfolio_origin[asset] = number_of_shares * pv
+                context.portfolio_highest[asset] = context.stock_shares[asset] * pv
+                logging.debug('%s buy %s shares at %s on:%s, j:%s',
+                              asset, number_of_shares, pv, get_datetime(),
+                              j.values[-3:])
         elif _short and context.stock_shares[asset] > 0:
             order_target_percent(asset, 0)
             number_of_shares = context.stock_shares[asset]
@@ -162,6 +164,9 @@ class MacdTaLib(StrategyBase):
         for x, y, z, u in parameter_set:
             yield (12, 26, 9, x, y, z, u)
         #yield (13, 26, 9, 3, 2, 40, 2)
+
+    def get_default_parameter(self):
+        return (13, 26, 9, 3, 2, 40, 2)
 
     def __repr__(self):
         short_ema_value, long_ema_value, signal_value, x, y, z, u = \
