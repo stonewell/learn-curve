@@ -16,8 +16,15 @@ class LearnContext(object):
     def get_learning_data(self):
         data = []
 
+        skip_drop = True
         for f in self.features_:
-            data.append(f.get_learning_data())
+            f_data = f.get_learning_data()
+
+            if not skip_drop:
+                f_data = f_data.drop(columns=['Op'])
+
+            data.append(f_data)
+            skip_drop = False
 
         return pd.concat(data, axis=1)
 

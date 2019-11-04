@@ -25,6 +25,7 @@ except:
 
 from learn.context import LearnContext
 from learn.feature.rsi import RsiFeature
+from learn.feature.macd import MacdFeature
 
 sys.dont_write_bytecode = True
 
@@ -150,6 +151,7 @@ def algo_running_worker(args, parameter):
     if args.load_optimized_parameter or args.use_default_parameter:
         learn_context = LearnContext()
         learn_context.add_feature(RsiFeature())
+        learn_context.add_feature(MacdFeature())
 
         strategy.learn_context = learn_context
 
