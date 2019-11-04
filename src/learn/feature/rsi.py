@@ -21,7 +21,7 @@ class RsiFeature(LearnFeature):
             self.buy_rsi_ = RSI(trailing_window.values, timeperiod=self.rsi_period_)[-1 * self.rsi_look_back_:]
             self.buy_price_ = data.current(asset, "price")
         elif self.buy_rsi_ is not None:
-            row = [data.current(asset, "price") >= self.buy_price_]
+            row = [1 if data.current(asset, "price") >= self.buy_price_ else 0]
             row.extend(self.buy_rsi_)
             self.rsi_.append(row)
             self.buy_rsi_ = None
