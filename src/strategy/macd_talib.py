@@ -135,6 +135,7 @@ class MacdTaLib(StrategyBase):
                 logging.debug('%s buy %s shares at %s on:%s, j:%s',
                               asset, number_of_shares, pv, get_datetime(),
                               j.values[-3:])
+                self.update_learn_context(context, asset, data, True)
         elif _short and context.stock_shares[asset] > 0:
             order_target_percent(asset, 0)
             number_of_shares = context.stock_shares[asset]
@@ -143,6 +144,7 @@ class MacdTaLib(StrategyBase):
             context.stock_shares[asset] = 0
             logging.debug('%s sell %s shares at %s on:%s',
                           asset, number_of_shares, pv, get_datetime())
+            self.update_learn_context(context, asset, data, False)
 
     def parameter_set(self):
         #parameter_set = list((x, y, int((x+y)/4)) \

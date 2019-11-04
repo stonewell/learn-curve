@@ -13,6 +13,7 @@ class StrategyBase(object):
         super().__init__()
         self.current_parameter_ = None
         self.name_ = name
+        self.learn_context_ = None
 
     def initialize(self, context, stock_ids):
         context.assets = [symbol(id) for id in stock_ids]
@@ -23,6 +24,10 @@ class StrategyBase(object):
 
     def handle_single_asset_data(self, context, asset, data):
         raise NotImplementedError
+
+    def update_learn_context(self, context, asset, data, is_buy):
+        if self.learn_context_:
+            self.learn_context_.handle_asset_data(context, asset, data, is_buy)
 
     def analyze(self, context, results):
         returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(results)
@@ -100,3 +105,11 @@ class StrategyBase(object):
 
     def get_default_parameter(self):
         return None
+
+    def __get_learn_context(self):
+        return self.learn_context_
+
+    def __set_learn_context(self, learn_context):
+        self.learn_context_ = learn_context
+
+    learn_context = property(__get_learn_context, __set_learn_context)

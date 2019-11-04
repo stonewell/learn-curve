@@ -10,6 +10,7 @@ import dateutil.relativedelta
 import numpy as np
 
 import pyfolio as pf
+import pandas as pd
 from pyfolio import timeseries
 
 try:
@@ -21,6 +22,9 @@ try:
     from . import algo_runner
 except:
     import algo_runner
+
+from learn.context import LearnContext
+from learn.feature.rsi import RsiFeature
 
 sys.dont_write_bytecode = True
 
@@ -108,9 +112,15 @@ class Analyzer(object):
         self.object_function_accept_ = module_loader.load_module_func(obj_func_module, 'accept')
         self.object_function_better_ = module_loader.load_module_func(obj_func_module, 'better_results')
         self.best_results_ = None
+        self.learn_data_ = None
 
     def analyze(self, result):
-        for parameter, results in result:
+        for parameter, results, learn_data in result:
+            if self.learn_data_ is not None and learn_data is not None:
+                self.learn_data_ = pd.concat([self.learn_data_, learn_data])
+            else:
+                self.learn_data_ = learn_data
+
             if results is None:
                 continue
             returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(results)
@@ -136,6 +146,14 @@ def algo_running_worker(args, parameter):
     create_strategy = module_loader.load_module_func(strategy_module, 'create_strategy')
     strategy = create_strategy(args)
 
+    learn_context = None
+    if args.load_optimized_parameter or args.use_default_parameter:
+        learn_context = LearnContext()
+        learn_context.add_feature(RsiFeature())
+
+        strategy.learn_context = learn_context
+
+
     runner = algo_runner.AlgoRunner(stock_data_provider, args.capital_base, args)
     symbols = args.stock_ids
     start_date = args.optimize_range[0]
@@ -155,10 +173,10 @@ def algo_running_worker(args, parameter):
                                end_date=end_date,
                                analyze_func=tmp_analyze_func)
 
-        return (parameter, perf_data)
+        return (parameter, perf_data, learn_context.get_learning_data() if learn_context is not None else None)
     except:
         logging.exception('running strategy:%s failed', strategy)
-        return (parameter, None)
+        return (parameter, None, None)
 
 def __get_optimized_parameter_file_path(stock_ids, strategy):
     file_name = '_'.join(stock_ids) + '-' + strategy.name + '.json'
@@ -215,7 +233,7 @@ def wfa_runner_main():
 
     validate_args(args)
 
-    if args.load_optimized_parameter:
+    if args.load_optimized_parameter or args.use_default_parameter:
         args.no_pool = True
 
     strategy_module = module_loader.load_module_from_file(args.strategy)
@@ -281,6 +299,9 @@ def wfa_runner_main():
 
     if not args.load_optimized_parameter:
         __save_optimized_parameter(args.stock_ids, strategy, perf_stats)
+
+    if analyzer.learn_data_ is not None:
+        logging.info('learn data:%s', analyzer.learn_data_)
 
     if args.skip_wfa:
         return
