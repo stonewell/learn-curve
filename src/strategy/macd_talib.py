@@ -86,8 +86,8 @@ class MacdTaLib(StrategyBase):
             and self.lh_cross_n_days(v_ma5[-5:], v_ma10[-5:], 5)
             and not self.hl_cross_n_days(k[-5:], d[-5:], 5)
             and not all(jj > 100 for jj in j[-3:])
-            and all(x > 0 for x in macd_signal[-3:])
-            and (macd_signal[-3] < macd_signal[-2] and macd_signal[-2] < macd_signal[-1])
+            # and all(x > 0 for x in macd_signal[-3:])
+            # and (macd_signal[-3] < macd_signal[-2] and macd_signal[-2] < macd_signal[-1])
         )
         _short = (
             True

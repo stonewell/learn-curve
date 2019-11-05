@@ -81,6 +81,8 @@ def parse_arguments():
                         action='store_true')
     parser.add_argument("--use_default_parameter", help="use strategy default parameter",
                         action='store_true')
+    parser.add_argument("--learn_data_file", help="append learn data to file",
+                        type=str, metavar='<learn data file>')
 
     return parser.parse_args()
 
@@ -304,6 +306,10 @@ def wfa_runner_main():
 
     if analyzer.learn_data_ is not None:
         logging.info('learn data:%s', analyzer.learn_data_)
+
+        if args.learn_data_file:
+            with open(args.learn_data_file, 'a+') as f:
+                analyzer.learn_data_.to_csv(f)
 
     if args.skip_wfa:
         return

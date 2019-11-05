@@ -94,3 +94,4 @@ vip/
 *.sqlite
 data/
 *.pickle
+learn.csv

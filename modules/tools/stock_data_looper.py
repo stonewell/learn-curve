@@ -22,12 +22,20 @@ class StockDataLooper:
         sz_vipdoc_path = os.path.join(self.vipdoc_path, "sz", "lday")
 
         for stock_code in stock_codes:
+            is_sh = stock_code.upper().startswith('SH')
+            is_sz = stock_code.upper().startswith('SZ')
+
+            if is_sh:
+                stock_code = stock_code[2:]
+            if is_sz:
+                stock_code = stock_code[2:]
+
             stock_data_file = os.path.join(sh_vipdoc_path, ''.join(['sh', str(stock_code), '.day']))
-            if os.path.isfile(stock_data_file):
+            if os.path.isfile(stock_data_file) and (is_sh or str(stock_code).startswith('60')):
                 call_stock(user_info, stock_data_file)
             else:
                 stock_data_file = os.path.join(sz_vipdoc_path, ''.join(['sz', str(stock_code), '.day']))
-                if os.path.isfile(stock_data_file):
+                if os.path.isfile(stock_data_file) and (is_sz or str(stock_code).startswith('0')):
                     call_stock(user_info, stock_data_file)
                 else:
                     logging.error('unable to find data file for:{}'.format(stock_code))
