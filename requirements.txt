@@ -1,9 +1,2 @@
-bs4
-pandas==0.22
-tushare
-zipline
-ta-lib
-matplotlib
-pyfolio
-python-dateutil
+cython
 baostock

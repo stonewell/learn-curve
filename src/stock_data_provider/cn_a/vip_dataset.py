@@ -4,9 +4,16 @@ import logging
 
 #add modules to sys path
 module_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "modules")
-vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "..",  "..", "vip", "vipdoc")
+if 'VIPDOC_PATH' in os.environ:
+    vipdoc_path = os.environ['VIPDOC_PATH']
+else:
+    vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "..",  "..", "vip", "vipdoc")
+
+    if not os.path.exists(vipdoc_path):
+        vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "vip", "vipdoc")
+
 if not os.path.exists(vipdoc_path):
-    vipdoc_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "vip", "vipdoc")
+    raise ValueError('invalid vipdoc path')
 
 data_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data")
 
@@ -20,9 +27,7 @@ import pandas as pd
 import datetime
 import numpy
 
-#from . import tushare_adjfactor as adj
 from . import baostock_adjfactor as adj
-from .cna_calendar import CNAExchangeCalendar
 
 
 class VipDataSet(object):
@@ -32,7 +37,6 @@ class VipDataSet(object):
         self.data_frame = pd.DataFrame(columns=['day', 'open', 'high', 'low', 'close', 'volume'])
         self.data_frame.set_index('day')
         self.holidays = None
-        self.trading_cal = None
         self.trading_date = None
 
 def process_stock_file(userinfo, stock_data_file):
@@ -69,7 +73,6 @@ def process_stock_file(userinfo, stock_data_file):
             dr = pd.date_range(start=trading_date[0], end=trading_date[-1])
             normalize_data(userinfo, tushare_symbol)
             userinfo.holidays = list(map(pd.to_datetime, numpy.setdiff1d(dr, pd.DatetimeIndex(trading_date))))
-            userinfo.trading_cal = CNAExchangeCalendar(userinfo.holidays)
             userinfo.trading_date = trading_date
         #end with
     except:
@@ -100,7 +103,7 @@ def normalize_data(vip_data, tushare_symbol):
             logging.exception('Error adj prices')
             return x
 
-    vip_data.data_frame = vip_data.data_frame.apply(adj_price, result_type='broad_cast', axis=1)
+    vip_data.data_frame = vip_data.data_frame.apply(adj_price, result_type='broadcast', axis=1)
 
 def load_stock_data(symbol):
     stock_data_looper = StockDataLooper(vipdoc_path)
