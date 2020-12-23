@@ -22,8 +22,8 @@ stock_data_provider = module_loader.load_module_from_file('stock_data_provider.c
 load_data = module_loader.load_module_func(stock_data_provider,
                                                  'load_stock_data')
 
-data = load_data('600019')
-data1 = load_data('600050')
+data = load_data('600519')
+data1 = load_data('600999')
 data2 = load_data('600732')
 bench_data = load_data('000001')
 
@@ -36,7 +36,7 @@ def __create_pd_panel(all_data):
 
     return panel
 
-start_date = '20200101'
+start_date = '20180101'
 end_date = '20201231'
 
 start_date = pd.to_datetime(start_date)
@@ -44,7 +44,7 @@ end_date = pd.to_datetime(end_date)
 
 print(start_date, end_date)
 
-all_data = panel = __create_pd_panel([data, data1, data2]).fillna(method='pad')
+all_data = panel = __create_pd_panel([data1]).fillna(method='pad')
 bench_data = __create_pd_panel([bench_data]).fillna(method='pad')
 
 panel = panel[(panel.index >= start_date) & (panel.index <= end_date)]
@@ -55,6 +55,7 @@ plt.show()
 
 # create the strategy
 from strategy.rsi_25_75_talib import create_strategy
+from strategy.r3 import create_strategy as r3_create_strategy
 from strategy.sma import above_sma, long_only_ew
 
 ss = bt.Strategy('s1', [bt.algos.RunMonthly(),
@@ -64,16 +65,20 @@ ss = bt.Strategy('s1', [bt.algos.RunMonthly(),
 
 s = create_strategy().get_strategy(all_data)
 
+r3_s = r3_create_strategy().get_strategy(all_data)
+
 # create a backtest and run it
 test = bt.Backtest(s, panel)
 test_s = bt.Backtest(ss, panel)
+test_r3_s = bt.Backtest(r3_s, panel)
 
 sma10 = above_sma(data=panel, sma_per=10, name='sma10', start=start_date)
 sma20 = above_sma(data=panel, sma_per=20, name='sma20', start=start_date)
 sma40 = above_sma(data=panel, sma_per=40, name='sma40', start=start_date)
 benchmark = long_only_ew(data=bench_data, name='spy', start=start_date)
 
-res = bt.run(test, test_s, sma10, sma20, sma40, benchmark)
+res = bt.run(test, test_s, sma10, sma20, sma40, benchmark, test_r3_s)
+#res = bt.run(sma10)
 
 trans = res.get_transactions()
 
