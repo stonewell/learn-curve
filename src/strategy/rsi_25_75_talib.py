@@ -36,7 +36,7 @@ class RSIStrategyBase(StrategyBase):
 
 class RSI_4_25_75_MA_200(RSIStrategyBase):
     def __init__(self):
-        super().__init__(4, 55, 25, 200)
+        super().__init__(4, 55, 25, 100)
 
 class RSISelect(bt.Algo):
     def __init__(self, rsi_buy_data, rsi_sell_data, ma_data):
