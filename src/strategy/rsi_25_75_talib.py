@@ -22,8 +22,8 @@ class RSIStrategyBase(StrategyBase):
         self.ma_value_ = ma_value
 
     def get_strategy(self, data):
-        rsi_buy_data = data.apply(lambda v: RSI(v, self.rsi_days_)) <= self.buy_value_
-        rsi_sell_data = data.apply(lambda v: RSI(v, self.rsi_days_)) >= self.sell_value_
+        rsi_buy_data = data.apply(lambda v: RSI(v, self.rsi_days_)) < self.buy_value_
+        rsi_sell_data = data.apply(lambda v: RSI(v, self.rsi_days_)) > self.sell_value_
         ma_data = data > data.apply(lambda v: MA(v, self.ma_value_))
 
         strategy = bt.Strategy(self.name_,
@@ -36,7 +36,7 @@ class RSIStrategyBase(StrategyBase):
 
 class RSI_4_25_75_MA_200(RSIStrategyBase):
     def __init__(self):
-        super().__init__(4, 55, 25, 100)
+        super().__init__(4, 55, 25, 200)
 
 class RSISelect(bt.Algo):
     def __init__(self, rsi_buy_data, rsi_sell_data, ma_data):
