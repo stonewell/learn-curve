@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 import pytz
 
-from zipline import run_algorithm
+import bt
 
 try:
     from . import module_loader
@@ -24,12 +24,11 @@ class AlgoRunner(object):
 
     def __create_pd_panel(self, all_data):
         trading_data = {}
-        for data in all_data:
-            trading_data[data.stock_id] = data.data_frame
 
-        panel = pd.Panel(trading_data)
-        panel.minor_axis = ["open","high","low","close","volume"]
-        panel.major_axis = panel.major_axis.tz_localize(pytz.utc)
+        for data in all_data:
+            trading_data[data.stock_id] = data.data_frame['close']
+
+        panel = pd.DataFrame(data=trading_data)
 
         return panel
 
@@ -42,26 +41,18 @@ class AlgoRunner(object):
         for symbol in symbols:
             data.append(self.load_data_(symbol))
 
-        start_date = pd.to_datetime(start_date, utc=True)
-        end_date = pd.to_datetime(end_date, utc=True)
+        if start_date:
+            start_date = pd.to_datetime(start_date)
+
+        if end_date:
+            end_date = pd.to_datetime(end_date)
 
         panel = self.__create_pd_panel(data)
 
-        def tmp_analyze_func(context=None, results=None):
-            if analyze_func is not None:
-                analyze_func(context, results)
-            else:
-                algo.analyze(context, results)
+        filtered_panel = panel
+        if start_date and end_date:
+            filtered_panel = panel[(panel.index >= start_date) & (panel.index <= end_date)]
 
-        perf_data = run_algorithm(start=start_date,
-                                  end=end_date,
-                                  trading_calendar=data[0].trading_cal,
-                                  data=panel,
-                                  capital_base=self.capital_base_,
-                                  initialize=lambda context: algo.initialize(context, symbols),
-                                  handle_data=lambda context, data: algo.handle_data(context, data),
-                                  before_trading_start=lambda context, data: algo.before_trading_start(context, data),
-                                  analyze=tmp_analyze_func,
-                                  default_extension=False)
+        test = bt.Backtest(algo.get_strategy(panel), filtered_panel)
 
-        return perf_data
+        return bt.run(test)

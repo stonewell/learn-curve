@@ -7,6 +7,9 @@ import pandas as pd
 import pytz
 
 import bt
+import matplotlib.pyplot as plt
+
+from talib import RSI, MA
 
 try:
     from . import module_loader
@@ -32,19 +35,44 @@ def __create_pd_panel(all_data):
 
     return panel
 
-panel = __create_pd_panel([data2]).fillna(method='pad')
+start_date = '20150101'
+end_date = '20201231'
+
+start_date = pd.to_datetime(start_date)
+end_date = pd.to_datetime(end_date)
+
+print(start_date, end_date)
+all_data = panel = __create_pd_panel([data, data1, data2]).fillna(method='pad')
+
+panel = panel[(panel.index >= start_date) & (panel.index <= end_date)]
+panel.plot()
+plt.show()
 
 # create the strategy
-s = bt.Strategy('s1', [bt.algos.RunMonthly(),
+from strategy.rsi_25_75_talib import create_strategy
+
+ss = bt.Strategy('s1', [bt.algos.RunMonthly(),
                        bt.algos.SelectAll(),
                        bt.algos.WeighEqually(),
                        bt.algos.Rebalance()])
 
+s = create_strategy().get_strategy(all_data)
+
 # create a backtest and run it
 test = bt.Backtest(s, panel)
-res = bt.run(test)
+test_s = bt.Backtest(ss, panel)
+res = bt.run(test, test_s)
 
-res.plot()
+trans = res.get_transactions()
+
+if len(trans) > 0:
+    res.plot()
+    plt.show()
+
+    res.plot_histogram()
+    plt.show()
+
+    print(trans.head(100))
 
 # ok and what about some stats?
 res.display()

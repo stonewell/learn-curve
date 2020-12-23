@@ -1,2 +1,5 @@
 cython
+matplotlib
+pandas
 baostock
+ta-lib
