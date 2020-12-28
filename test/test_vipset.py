@@ -65,7 +65,7 @@ ss = bt.Strategy('s1', [bt.algos.RunMonthly(),
 
 s = create_strategy().get_strategy(all_data)
 
-r3_s = r3_create_strategy().get_strategy(all_data)
+r3_s = r3_create_strategy().get_strategy([data])
 
 # create a backtest and run it
 test = bt.Backtest(s, panel)

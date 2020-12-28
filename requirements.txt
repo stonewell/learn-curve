@@ -4,3 +4,4 @@ pandas
 baostock
 ta-lib
 scipy
+cachetools

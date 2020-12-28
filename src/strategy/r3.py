@@ -2,7 +2,7 @@ import logging
 
 from talib import RSI, MA
 
-from .strategy_base import StrategyBase,SelectWithBuySellData
+from .scriptable_strategy import ScriptableStrategy
 
 import pandas as pd
 import pytz
@@ -13,10 +13,14 @@ import numpy as np
 def create_strategy(args = None):
     return __R3()
 
-class __RSIStrategyBase(StrategyBase):
+class __RSIStrategyBase(ScriptableStrategy):
     def __init__(self, rsi_days, sell_value, buy_value, ma_value, drop_days, rsi_drop_first_value):
         super().__init__('RSI_%d_%d_%d_ma_%d_drop_%d_%d'
-                         % (rsi_days, sell_value, buy_value, ma_value, drop_days, rsi_drop_first_value))
+                         % (rsi_days, sell_value, buy_value, ma_value, drop_days, rsi_drop_first_value),
+                         self.__get_buy_script(rsi_days, drop_days, rsi_drop_first_value, buy_value, ma_value),
+                         'RSI(C, %d) > %d' % (rsi_days, sell_value),
+                         'close',
+                         'close')
         self.rsi_days_ = rsi_days
         self.sell_value_ = sell_value
         self.buy_value_ = buy_value
@@ -24,44 +28,25 @@ class __RSIStrategyBase(StrategyBase):
         self.drop_days_ = drop_days
         self.rsi_drop_first_value_ = rsi_drop_first_value
 
-    def get_strategy(self, data):
-        rsi_data = data.apply(lambda v: RSI(v, self.rsi_days_))
+    def __get_buy_script(self, rsi_days, drop_days, rsi_drop_first_value, buy_value, ma_value):
+        rsi = 'RSI(C, %d)' % rsi_days
 
-        rsi_drop_data = self.__generate_drop_data(rsi_data)
-        rsi_buy_data = (
-            (rsi_data < self.buy_value_)
-            & (data > data.apply(lambda v: MA(v, self.ma_value_)))
-            & rsi_drop_data
-        )
+        parts = []
+        parts.append('(%s<%d)' % (rsi, buy_value))
 
-        rsi_sell_data = rsi_data > self.sell_value_
+        last_rsi = rsi
+        for i in range(drop_days):
+            tmp_rsi = 'REF(%s, -%d)' % (rsi, (i + 1))
+            parts.append('(%s<%s)' % (last_rsi, tmp_rsi))
 
-        strategy = bt.Strategy(self.name_,
-                               [bt.algos.RunDaily(),
-                                SelectWithBuySellData(rsi_buy_data, rsi_sell_data),
-                                bt.algos.WeighMeanVar(),
-                                bt.algos.Rebalance()])
+            last_rsi = tmp_rsi
 
-        return strategy
+        parts.append('(%s>%d)' % (last_rsi, rsi_drop_first_value))
+        parts.append('(C>MA(C, %d))' % (ma_value))
 
-    def __generate_drop_data(self, rsi_data):
-        drop_data = None
+        s = ' & '.join(parts)
 
-        last_data = rsi_data
-        for i in range(self.drop_days_):
-            data = last_data.shift(1)
-
-            if drop_data is None:
-                drop_data = last_data < data
-            else:
-                drop_data = drop_data & (last_data < data)
-
-            last_data = data
-
-        drop_data = drop_data & (last_data > self.rsi_drop_first_value_)
-
-        return drop_data
-
+        return s
 
 class __R3(__RSIStrategyBase):
     def __init__(self):
