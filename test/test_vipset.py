@@ -44,7 +44,9 @@ end_date = pd.to_datetime(end_date)
 
 print(start_date, end_date)
 
-all_data = panel = __create_pd_panel([data]).fillna(method='pad')
+all_loaded_data = [data, data1, data2]
+
+all_data = panel = __create_pd_panel(all_loaded_data).fillna(method='pad')
 bench_data = __create_pd_panel([bench_data]).fillna(method='pad')
 
 panel = panel[(panel.index >= start_date) & (panel.index <= end_date)]
@@ -63,9 +65,9 @@ ss = bt.Strategy('s1', [bt.algos.RunMonthly(),
                        bt.algos.WeighEqually(),
                        bt.algos.Rebalance()])
 
-s = create_strategy().get_strategy(all_data)
+s = create_strategy().get_strategy(all_loaded_data)
 
-r3_s = r3_create_strategy().get_strategy([data])
+r3_s = r3_create_strategy().get_strategy(all_loaded_data)
 
 # create a backtest and run it
 test = bt.Backtest(s, panel)

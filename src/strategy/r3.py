@@ -1,13 +1,6 @@
 import logging
 
-from talib import RSI, MA
-
 from .scriptable_strategy import ScriptableStrategy
-
-import pandas as pd
-import pytz
-import bt
-import numpy as np
 
 
 def create_strategy(args = None):
