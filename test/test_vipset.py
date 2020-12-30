@@ -36,7 +36,7 @@ def __create_pd_panel(all_data):
 
     return panel
 
-start_date = '20200101'
+start_date = '20201001'
 end_date = '20201231'
 
 start_date = pd.to_datetime(start_date)
@@ -91,7 +91,7 @@ if len(trans) > 0:
     res.plot_histogram()
     plt.show()
 
-    print(trans.head(100))
+    print(trans.to_string())
 
 # ok and what about some stats?
 res.display()

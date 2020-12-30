@@ -61,9 +61,9 @@ class ScriptableStrategy(StrategyBase):
         for data in all_data:
             trading_data[data.stock_id] = data.data_frame[name]
 
-            panel = pd.DataFrame(data=trading_data)
+        panel = pd.DataFrame(data=trading_data)
 
-            return panel
+        return panel.fillna(method='pad')
 
     def get_sell_data(self, data):
         return self.__create_dataframe(data, self.get_sell_name())
@@ -73,11 +73,11 @@ class ScriptableStrategy(StrategyBase):
 
     def get_strategy(self, data):
         data_globals = {
-            'C' : self.__create_dataframe(data, 'close').fillna(method='pad'),
-            'O' : self.__create_dataframe(data, 'open').fillna(method='pad'),
-            'H' : self.__create_dataframe(data, 'high').fillna(method='pad'),
-            'L' : self.__create_dataframe(data, 'low').fillna(method='pad'),
-            'V' : self.__create_dataframe(data, 'volume').fillna(method='pad'),
+            'C' : self.__create_dataframe(data, 'close'),
+            'O' : self.__create_dataframe(data, 'open'),
+            'H' : self.__create_dataframe(data, 'high'),
+            'L' : self.__create_dataframe(data, 'low'),
+            'V' : self.__create_dataframe(data, 'volume'),
         }
 
         data_globals['MA'] = self.__make_func(talib.MA)

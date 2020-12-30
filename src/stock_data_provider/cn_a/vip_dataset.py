@@ -31,13 +31,14 @@ from . import baostock_adjfactor as adj
 
 
 class VipDataSet(object):
-    def __init__(self, stock_id):
+    def __init__(self, stock_id, do_normalize_data):
         self.err = False
         self.stock_id = stock_id
         self.data_frame = pd.DataFrame(columns=['day', 'open', 'high', 'low', 'close', 'volume'])
         self.data_frame.set_index('day')
         self.holidays = None
         self.trading_date = None
+        self.do_normalize_data = do_normalize_data
 
 def process_stock_file(userinfo, stock_data_file):
     data_frame = []
@@ -71,7 +72,9 @@ def process_stock_file(userinfo, stock_data_file):
             userinfo.data_frame = data_frame
             userinfo.err = False
             dr = pd.date_range(start=trading_date[0], end=trading_date[-1])
-            normalize_data(userinfo, tushare_symbol)
+
+            if userinfo.do_normalize_data:
+                normalize_data(userinfo, tushare_symbol)
             userinfo.holidays = list(map(pd.to_datetime, numpy.setdiff1d(dr, pd.DatetimeIndex(trading_date))))
             userinfo.trading_date = trading_date
         #end with
@@ -105,10 +108,11 @@ def normalize_data(vip_data, tushare_symbol):
 
     vip_data.data_frame = vip_data.data_frame.apply(adj_price, result_type='broadcast', axis=1)
 
-def load_stock_data(symbol):
+def load_stock_data(symbol, do_normalize_data = True):
     stock_data_looper = StockDataLooper(vipdoc_path)
 
-    data = VipDataSet(symbol)
+    data = VipDataSet(symbol, do_normalize_data)
+
     stock_data_looper.loop_stocks_with_code(process_stock_file,
                                             data,
                                             [symbol])
