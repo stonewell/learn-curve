@@ -14,8 +14,13 @@ import numpy as np
 
 local_cache = Cache(maxsize=42)
 
-def hash_key_for_2(data1, data2):
-    return keys.hashkey(id(data1), data2)
+def hash_key_for_2(data1, *args):
+    return keys.hashkey(id(data1), *args)
+
+def MACDHist(*args):
+    _, _, macd_hist = talib.MACD(*args)
+
+    return macd_hist
 
 class ScriptableStrategy(StrategyBase):
     def __init__(self, name, buy_script, sell_script, buy_name='close', sell_name='close'):
@@ -43,8 +48,8 @@ class ScriptableStrategy(StrategyBase):
     @staticmethod
     def __make_func(func):
         @cached(cache=local_cache, key=hash_key_for_2)
-        def wrapper(data, days):
-            return data.apply(lambda v: func(v, days))
+        def wrapper(data, *args):
+            return data.apply(lambda v: func(v, *args))
 
         return wrapper
 
@@ -81,6 +86,7 @@ class ScriptableStrategy(StrategyBase):
         }
 
         data_globals['MA'] = self.__make_func(talib.MA)
+        data_globals['MACDHist'] = self.__make_func(MACDHist)
         data_globals['RSI'] = self.__make_func(talib.RSI)
         data_globals['REF'] = self.__ref
 
