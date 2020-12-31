@@ -20,4 +20,4 @@ class __RSIStrategyBase(ScriptableStrategy):
 
 class __RSI_4_25_75_MA_200(__RSIStrategyBase):
     def __init__(self):
-        super().__init__(4, 55, 25, 200)
+        super().__init__(4, 80, 25, 200)

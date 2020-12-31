@@ -22,10 +22,11 @@ stock_data_provider = module_loader.load_module_from_file('stock_data_provider.c
 load_data = module_loader.load_module_func(stock_data_provider,
                                                  'load_stock_data')
 
-do_normalize_data = True
+do_normalize_data = False
 data = load_data('600369', do_normalize_data)
 data1 = load_data('600999', do_normalize_data)
 data2 = load_data('600732', do_normalize_data)
+data3 = load_data('601066', do_normalize_data)
 bench_data = load_data('sh000001', do_normalize_data)
 
 def __create_pd_panel(all_data):
@@ -83,8 +84,8 @@ sma20 = above_sma(data=panel, sma_per=20, name='sma20', start=start_date)
 sma40 = above_sma(data=panel, sma_per=40, name='sma40', start=start_date)
 benchmark = long_only_ew(data=bench_data, name='spy', start=start_date)
 
-#res = bt.run(test, test_s, sma10, sma20, sma40, benchmark, test_r3_s, test_macd_s)
-res = bt.run(benchmark)
+res = bt.run(test, test_s, sma10, sma20, sma40, benchmark, test_r3_s, test_macd_s)
+#res = bt.run(test, test_r3_s, test_macd_s)
 
 trans = res.get_transactions()
 

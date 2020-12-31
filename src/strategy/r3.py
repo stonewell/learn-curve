@@ -43,5 +43,4 @@ class __RSIStrategyBase(ScriptableStrategy):
 
 class __R3(__RSIStrategyBase):
     def __init__(self):
-        super().__init__(2, 70, 10, 200, 3, 60)
-
+        super().__init__(2, 55, 10, 200, 3, 60)
