@@ -38,7 +38,7 @@ def __create_pd_panel(all_data):
 
     return panel
 
-start_date = '20201001'
+start_date = '20200101'
 end_date = '20201231'
 
 start_date = pd.to_datetime(start_date)
@@ -46,7 +46,7 @@ end_date = pd.to_datetime(end_date)
 
 print(start_date, end_date)
 
-all_loaded_data = [data, data1, data2]
+all_loaded_data = [data3]
 
 all_data = panel = __create_pd_panel(all_loaded_data).fillna(method='pad')
 bench_data = __create_pd_panel([bench_data]).fillna(method='pad')
@@ -62,6 +62,8 @@ from strategy.rsi_25_75_talib import create_strategy
 from strategy.r3 import create_strategy as r3_create_strategy
 from strategy.sma import above_sma, long_only_ew
 from strategy.macd_talib import create_strategy as macd_create_strategy
+from strategy.ibs import create_strategy as ibs_create_strategy
+from strategy.ibs_rsi import create_strategy as ibs_rsi_create_strategy
 
 ss = bt.Strategy('s1', [bt.algos.RunMonthly(),
                        bt.algos.SelectAll(),
@@ -72,20 +74,24 @@ s = create_strategy().get_strategy(all_loaded_data)
 
 r3_s = r3_create_strategy().get_strategy(all_loaded_data)
 macd_s = macd_create_strategy().get_strategy(all_loaded_data)
+ibs_s = ibs_create_strategy().get_strategy(all_loaded_data)
+ibs_rsi_s = ibs_rsi_create_strategy().get_strategy(all_loaded_data)
 
 # create a backtest and run it
 test = bt.Backtest(s, panel)
 test_s = bt.Backtest(ss, panel)
 test_r3_s = bt.Backtest(r3_s, panel)
 test_macd_s = bt.Backtest(macd_s, panel)
+test_ibs_s = bt.Backtest(ibs_s, panel)
+test_ibs_rsi_s = bt.Backtest(ibs_rsi_s, panel)
 
 sma10 = above_sma(data=panel, sma_per=10, name='sma10', start=start_date)
 sma20 = above_sma(data=panel, sma_per=20, name='sma20', start=start_date)
 sma40 = above_sma(data=panel, sma_per=40, name='sma40', start=start_date)
 benchmark = long_only_ew(data=bench_data, name='spy', start=start_date)
 
-res = bt.run(test, test_s, sma10, sma20, sma40, benchmark, test_r3_s, test_macd_s)
-#res = bt.run(test, test_r3_s, test_macd_s)
+#res = bt.run(test, test_s, sma10, sma20, sma40, benchmark, test_r3_s, test_macd_s, test_ibs_s, test_ibs_rsi_s)
+res = bt.run(test_ibs_s)
 
 trans = res.get_transactions()
 

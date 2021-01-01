@@ -22,6 +22,10 @@ def MACDHist(*args):
 
     return macd_hist
 
+@cached(cache=local_cache)
+def IBS(*args):
+    return (C -L) / (H -L)
+
 class ScriptableStrategy(StrategyBase):
     def __init__(self, name, buy_script, sell_script, buy_name='close', sell_name='close'):
         super().__init__(name)
@@ -89,6 +93,7 @@ class ScriptableStrategy(StrategyBase):
         data_globals['MACDHist'] = self.__make_func(MACDHist)
         data_globals['RSI'] = self.__make_func(talib.RSI)
         data_globals['REF'] = self.__ref
+        data_globals['IBS'] = IBS
 
         data_globals.update(self._get_buildin_values())
 
