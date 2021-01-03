@@ -35,7 +35,6 @@ class __MACDStrategyBase(ScriptableStrategy):
 
         s = ' & '.join(parts)
 
-        print(s)
         return s
 
 class __MACD4(__MACDStrategyBase):

@@ -1,16 +1,15 @@
 import logging
-from functools import lru_cache, cache
 
 import talib
 
 from cachetools import Cache, keys, cached
 
 from .strategy_base import StrategyBase, SelectWithBuySellData
+from stock_data_provider import create_dataframe
 
 import pandas as pd
-import pytz
 import bt
-import numpy as np
+
 
 local_cache = Cache(maxsize=42)
 
@@ -21,10 +20,6 @@ def MACDHist(*args):
     _, _, macd_hist = talib.MACD(*args)
 
     return macd_hist
-
-@cached(cache=local_cache)
-def IBS(*args):
-    return (C -L) / (H -L)
 
 class ScriptableStrategy(StrategyBase):
     def __init__(self, name, buy_script, sell_script, buy_name='close', sell_name='close'):
@@ -63,37 +58,25 @@ class ScriptableStrategy(StrategyBase):
     def get_sell_name(self):
         return self.sell_name_
 
-    @staticmethod
-    @cached(cache=local_cache, key=hash_key_for_2)
-    def __create_dataframe(all_data, name='close'):
-        trading_data = {}
-        for data in all_data:
-            trading_data[data.stock_id] = data.data_frame[name]
-
-        panel = pd.DataFrame(data=trading_data)
-
-        return panel.fillna(method='pad')
-
     def get_sell_data(self, data):
-        return self.__create_dataframe(data, self.get_sell_name())
+        return create_dataframe(data, self.get_sell_name())
 
     def get_buy_data(self, data):
         return __create_dataframe(data, self.get_buy_name())
 
     def get_strategy(self, data):
         data_globals = {
-            'C' : self.__create_dataframe(data, 'close'),
-            'O' : self.__create_dataframe(data, 'open'),
-            'H' : self.__create_dataframe(data, 'high'),
-            'L' : self.__create_dataframe(data, 'low'),
-            'V' : self.__create_dataframe(data, 'volume'),
+            'C' : create_dataframe(data, 'close'),
+            'O' : create_dataframe(data, 'open'),
+            'H' : create_dataframe(data, 'high'),
+            'L' : create_dataframe(data, 'low'),
+            'V' : create_dataframe(data, 'volume'),
         }
 
         data_globals['MA'] = self.__make_func(talib.MA)
         data_globals['MACDHist'] = self.__make_func(MACDHist)
         data_globals['RSI'] = self.__make_func(talib.RSI)
         data_globals['REF'] = self.__ref
-        data_globals['IBS'] = IBS
 
         data_globals.update(self._get_buildin_values())
 

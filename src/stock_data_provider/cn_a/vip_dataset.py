@@ -29,7 +29,6 @@ import numpy
 
 from . import baostock_adjfactor as adj
 
-
 class VipDataSet(object):
     def __init__(self, stock_id, do_normalize_data):
         self.err = False
@@ -108,7 +107,9 @@ def normalize_data(vip_data, tushare_symbol):
 
     vip_data.data_frame = vip_data.data_frame.apply(adj_price, result_type='broadcast', axis=1)
 
-def load_stock_data(symbol, do_normalize_data = True):
+def __load_stock_data(symbol, do_normalize_data = True):
+    symbol = symbol.strip()
+
     stock_data_looper = StockDataLooper(vipdoc_path)
 
     data = VipDataSet(symbol, do_normalize_data)
@@ -121,3 +122,11 @@ def load_stock_data(symbol, do_normalize_data = True):
         raise ValueError()
 
     return data
+
+def load_stock_data(symbol, do_normalize_data = True):
+    symbols = symbol.split(',')
+
+    if len(symbols) == 0:
+        raise ValueError('no symbol:%s' % symbol)
+
+    return list(map(lambda x: __load_stock_data(x, do_normalize_data), symbols))
