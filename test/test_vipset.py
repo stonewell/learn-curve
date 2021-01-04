@@ -32,8 +32,8 @@ all_loaded_data = load_data('600369,600999,600732,601066', do_normalize_data)
 
 bench_data = load_data('sh000001', do_normalize_data)
 
-start_date = '20200701'
-end_date = '20201231'
+start_date = '20200101'
+end_date = '20200630'
 
 print(start_date, end_date)
 
