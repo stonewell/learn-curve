@@ -11,7 +11,7 @@ class __MACDStrategyBase(ScriptableStrategy):
         super().__init__('MACD_%d_%d_%d_%d'
                          % (fastperiod, slowperiod, signalperiod, macd_days),
                          self.__get_buy_script(fastperiod, slowperiod, signalperiod, macd_days),
-                         'C > REF(C, -1)',
+                         'C < MA(C, 10)',
                          'close',
                          'close')
         self.macd_days_ = macd_days
@@ -32,6 +32,7 @@ class __MACDStrategyBase(ScriptableStrategy):
             last_macd = tmp_macd
 
         parts.append('(%s<0)' % (macd))
+        parts.append('(C>MA(C, 200))')
 
         s = ' & '.join(parts)
 

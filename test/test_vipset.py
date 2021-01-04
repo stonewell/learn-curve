@@ -25,13 +25,14 @@ load_data = module_loader.load_module_func(stock_data_provider,
 
 do_normalize_data = False
 
-#all_loaded_data = load_data('600369,600999,600732,601066', do_normalize_data)
+all_loaded_data = load_data('600369,600999,600732,601066', do_normalize_data)
 #all_loaded_data = load_data('600019,600050,600030,600584,600036,600406', do_normalize_data)
-all_loaded_data = load_data('600019,600050,600584', do_normalize_data)
+#all_loaded_data = load_data('600019,600050,600584', do_normalize_data)
+#all_loaded_data = load_data('600519,000858,601318,600036,603288,600276,600900,600887', do_normalize_data)
 
 bench_data = load_data('sh000001', do_normalize_data)
 
-start_date = '20200101'
+start_date = '20200701'
 end_date = '20201231'
 
 print(start_date, end_date)
@@ -42,7 +43,7 @@ bench_data = create_dataframe(bench_data, 'close')
 panel = filter_dataframe(panel, start_date, end_date)
 bench_data = filter_dataframe(bench_data, start_date, end_date)
 
-bt.merge(panel, bench_data).plot()
+bt.merge(panel).plot()
 plt.show()
 
 # create the strategy
@@ -76,10 +77,11 @@ test_ibs_rsi_s = bt.Backtest(ibs_rsi_s, panel)
 sma10 = above_sma(data=panel, sma_per=10, name='sma10', start=start_date)
 sma20 = above_sma(data=panel, sma_per=20, name='sma20', start=start_date)
 sma40 = above_sma(data=panel, sma_per=40, name='sma40', start=start_date)
-benchmark = long_only_ew(data=bench_data, name='spy', start=start_date)
+benchmark = long_only_ew(data=bench_data, name='sh000001', start=start_date)
+long_only = long_only_ew(data=panel, name='bench', start=start_date)
 
 res = bt.run(test, test_s, sma10, sma20, sma40, benchmark, test_r3_s, test_macd_s, test_ibs_s, test_ibs_rsi_s)
-#res = bt.run(test)
+#res = bt.run(test_ibs_s, test, test_r3_s, test_macd_s, test_ibs_rsi_s, long_only)
 
 trans = res.get_transactions()
 

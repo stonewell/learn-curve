@@ -18,6 +18,14 @@ class __RSIStrategyBase(ScriptableStrategy):
         self.buy_value_ = buy_value
         self.ma_value_ = ma_value
 
+    def get_strategy(self, data):
+        s = super().get_strategy(data)
+
+        print(self.buy_data_.tail(1))
+        print(self.sell_data_.tail(1))
+
+        return s
+
 class __RSI_4_25_75_MA_200(__RSIStrategyBase):
     def __init__(self):
         super().__init__(4, 80, 25, 200)

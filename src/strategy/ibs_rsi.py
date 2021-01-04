@@ -10,7 +10,7 @@ class __StrategyBase(ScriptableStrategy):
     def __init__(self, buy_value, sell_value, rsi_days, rsi_value):
         super().__init__('IBS_%f_%f_RSI_%d_%d'
                          % (buy_value, sell_value, rsi_days, rsi_value),
-                         '(((C-L)/(H-L)) < %f) & (RSI(C, %d) < %d)' % (buy_value, rsi_days, rsi_value),
+                         '(((C-L)/(H-L)) < %f) & (RSI(C, %d) < %d) & (C > MA(C, 200))' % (buy_value, rsi_days, rsi_value),
                          '((C-L)/(H-L)) > %f' % sell_value,
                          'close',
                          'close')
