@@ -18,13 +18,11 @@ load_data = module_loader.load_module_func(stock_data_provider,
                                                  'load_stock_data')
 
 class PeakAnalyze(object):
-    def __init__(self, stock_id,
+    def __init__(self, stock_ids,
                  start_date=None, end_date=None,
                  do_normalize_data=False,
                  column='close',
-                 height=-3,
-                 threshold=None,
-                 distance=5):
+                 **kwargs):
         self.all_loaded_data_ = load_data(stock_ids, do_normalize_data)
         self.stock_ids_ = stock_ids
         self.start_date_ = start_date
@@ -39,13 +37,8 @@ class PeakAnalyze(object):
             raise ValueError('must be single stock, but get:%s' % stock_id)
 
         values = data[data.columns[0]].values
-        self.peak_index_, _ = find_peaks(values,
-                                         height=height,
-                                         threshold=threshold,
-                                         distance=distance)
-        self.trough_index_, _ = find_peaks(-values,
-                                           threshold=threshold,
-                                           distance=distance)
+        self.peak_index_, _ = find_peaks(values, **kwargs)
+        self.trough_index_, _ = find_peaks(-values, **kwargs)
 
 
     def analyze(self, indicator_script, back_days, forward_days):
