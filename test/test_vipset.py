@@ -23,7 +23,7 @@ stock_data_provider = module_loader.load_module_from_file('stock_data_provider.c
 load_data = module_loader.load_module_func(stock_data_provider,
                                                  'load_stock_data')
 
-do_normalize_data = False
+do_normalize_data = True
 
 #all_loaded_data = load_data('600369,600999,600732,601066', do_normalize_data)
 #all_loaded_data = load_data('600019,600050,600030,600584,600036,600406', do_normalize_data)
