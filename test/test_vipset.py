@@ -25,15 +25,15 @@ load_data = module_loader.load_module_func(stock_data_provider,
 
 do_normalize_data = True
 
-all_loaded_data = load_data('600369,600999,600732,601066', do_normalize_data)
+#all_loaded_data = load_data('600369,600999,600732,601066', do_normalize_data)
 #all_loaded_data = load_data('600019,600050,600030,600584,600036,600406', do_normalize_data)
 #all_loaded_data = load_data('600019,600050,600584', do_normalize_data)
 #all_loaded_data = load_data('600519,000858,601318,600036,603288,600276,600900,600887', do_normalize_data)
-
+all_loaded_data = load_data('600732', do_normalize_data)
 bench_data = load_data('sh000001', do_normalize_data)
 
-start_date = '20200101'
-end_date = '20200630'
+start_date = '20210501'
+end_date = '20210630'
 
 print(start_date, end_date)
 
@@ -83,8 +83,9 @@ long_only = long_only_ew(data=panel, name='bench', start=start_date)
 res = bt.run(test, test_s, sma10, sma20, sma40, benchmark, test_r3_s, test_macd_s, test_ibs_s, test_ibs_rsi_s)
 #res = bt.run(test_ibs_s, test, test_r3_s, test_macd_s, test_ibs_rsi_s, long_only)
 
-trans = res.get_transactions()
+#trans = res.get_transactions()
 
+trans = []
 if len(trans) > 0:
     res.plot()
     plt.show()
