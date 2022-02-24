@@ -1,3 +1,4 @@
+import sys
 import logging
 
 from scipy.signal import find_peaks, medfilt, wiener, hilbert
@@ -15,7 +16,7 @@ sys.dont_write_bytecode = True
 
 stock_data_provider = module_loader.load_module_from_file('stock_data_provider.cn_a.vip_dataset')
 load_data = module_loader.load_module_func(stock_data_provider,
-                                                 'load_stock_data')
+                                           'load_stock_data')
 
 class PeakAnalyze(object):
     def __init__(self, stock_ids,
@@ -29,20 +30,29 @@ class PeakAnalyze(object):
         self.end_date_ = end_date
         self.do_normalize_data_ = do_normalize_data
 
-        data = filter_dataframe(create_dataframe(self.all_loaded_data_, column),
-                                      self.start_date_,
-                                      self.end_date_)
+        self.data_ = data = filter_dataframe(create_dataframe(self.all_loaded_data_, column),
+                                self.start_date_,
+                                self.end_date_)
 
         if len(data.columns) > 1:
-            raise ValueError('must be single stock, but get:%s' % stock_id)
+            raise ValueError('must be single stock, but get:%s' % stock_ids)
 
         values = data[data.columns[0]].values
-        self.peak_index_, _ = find_peaks(values, **kwargs)
-        self.trough_index_, _ = find_peaks(-values, **kwargs)
+
+        params = {
+            "prominence":(.618, None),
+            "threshold":None,
+            "distance":5,
+        }
+
+        params.update(kwargs)
+
+        self.peak_index_, _ = find_peaks(values, **params)
+        self.trough_index_, _ = find_peaks(-values, **params)
 
 
     def analyze(self, indicator_script, back_days, forward_days):
         c = IndicatorCollect(indicator_script)
 
-        return (c.collect(self.all_loaded_data_, back_days, forward_days, self.peak_index_),
-                c.collect(self.all_loaded_data_, back_days, forward_days, self.trough_index_))
+        return (c.collect(self.all_loaded_data_, self.start_date_, self.end_date_, back_days, forward_days, self.peak_index_),
+                c.collect(self.all_loaded_data_, self.start_date_, self.end_date_, back_days, forward_days, self.trough_index_))

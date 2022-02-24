@@ -1,6 +1,6 @@
 import logging
 
-from stock_data_provider import create_dataframe
+from stock_data_provider import create_dataframe, filter_dataframe
 from stock_data_provider.utils import get_data_globals
 
 
@@ -11,13 +11,15 @@ class IndicatorCollect(object):
     def _get_buildin_values(self):
         return {}
 
-    def collect(self, all_loaded_data, back_days, forward_days, selected_index = None):
+    def collect(self, all_loaded_data, start_date, end_date, back_days, forward_days, selected_index = None):
         data_globals = get_data_globals(all_loaded_data)
         data_globals.update(self._get_buildin_values())
 
-        data = eval(self.indicator_script_, data_globals)
+        data = filter_dataframe(eval(self.indicator_script_, data_globals),
+                                start_date,
+                                end_date)
 
-        if selected_index:
+        if selected_index is not None:
             data = data.iloc[selected_index]
 
         return data
