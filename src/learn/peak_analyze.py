@@ -6,6 +6,8 @@ from scipy.signal import find_peaks, medfilt, wiener, hilbert
 from stock_data_provider import create_dataframe, filter_dataframe
 from .indicator_collect import IndicatorCollect
 
+import pandas as pd
+
 
 try:
     from . import module_loader
@@ -52,7 +54,27 @@ class PeakAnalyze(object):
 
 
     def analyze(self, indicator_script, back_days, forward_days):
-        c = IndicatorCollect(indicator_script)
+        scripts = indicator_script
 
-        return (c.collect(self.all_loaded_data_, self.start_date_, self.end_date_, back_days, forward_days, self.peak_index_),
-                c.collect(self.all_loaded_data_, self.start_date_, self.end_date_, back_days, forward_days, self.trough_index_))
+        if isinstance(indicator_script, str):
+            scripts = [indicator_script]
+
+        data = None
+
+        for s in scripts:
+            c = IndicatorCollect(s)
+
+            tmp_data = c.collect(self.all_loaded_data_, self.start_date_, self.end_date_, back_days, forward_days)
+            tmp_data = tmp_data.rename(lambda x:s, axis='columns')
+
+            if data is not None:
+                data = pd.concat([data, tmp_data], axis=1)
+            else:
+                data = tmp_data
+
+        data.insert(len(data.columns), 'trade', [0] * len(data))
+
+        data.iloc[self.peak_index_, data.columns.get_loc('trade')] = 100
+        data.iloc[self.trough_index_, data.columns.get_loc('trade')] = 50
+
+        return data

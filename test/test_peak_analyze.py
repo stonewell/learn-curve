@@ -29,11 +29,15 @@ print(start_date, end_date)
 
 stock_ids = '600369'
 
-p = PeakAnalyze(stock_ids, start_date, end_date, do_normalize_data, prominence=.2)
+p = PeakAnalyze(stock_ids, start_date, end_date, do_normalize_data, prominence=.1)
 
-panel = p.analyze('RSI(C, 4)', 5, 5)
+panel = p.analyze(['RSI(C, 4)', 'MA(C, 5)'], 5, 5)
 
-plt.plot(panel[0], 'r', label='peaks')
-plt.plot(panel[1], 'g', label='troughs')
+print(p.peak_index_)
+print(panel)
+
+plt.plot(panel[panel['trade']==100], 'ro', label='peaks')
+plt.plot(panel[panel['trade']==50], 'go', label='troughs')
+plt.plot(panel)
 
 plt.show()
