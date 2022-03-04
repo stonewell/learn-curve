@@ -89,5 +89,7 @@ def main():
 
         print(panel)
 
+        panel.to_csv(args.output, index=True)
+
 if __name__ == '__main__':
     main()
