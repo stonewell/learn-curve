@@ -16,17 +16,19 @@ except:
 
 sys.dont_write_bytecode = True
 
-stock_data_provider = module_loader.load_module_from_file('stock_data_provider.cn_a.vip_dataset')
-load_data = module_loader.load_module_func(stock_data_provider,
-                                           'load_stock_data')
 
 class PeakAnalyze(object):
     def __init__(self, stock_ids,
                  start_date=None, end_date=None,
                  do_normalize_data=False,
                  column='close',
+                 stock_data_provider_name='stock_data_provider.cn_a.vip_dataset',
                  **kwargs):
-        self.all_loaded_data_ = load_data(stock_ids, do_normalize_data)
+        self.stock_data_provider_ = module_loader.load_module_from_file(stock_data_provider_name)
+        self.load_data_ = module_loader.load_module_func(self.stock_data_provider_,
+                                                         'load_stock_data')
+
+        self.all_loaded_data_ = self.load_data_(stock_ids, do_normalize_data)
         self.stock_ids_ = stock_ids
         self.start_date_ = start_date
         self.end_date_ = end_date
