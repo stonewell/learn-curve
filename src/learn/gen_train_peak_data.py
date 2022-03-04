@@ -66,6 +66,7 @@ def main():
     if args.parameters is not None:
         provided_params.update(json.load(args.parameters))
 
+    header = True
     for stock_id in args.stock_ids:
         params_ = {}
 
@@ -89,7 +90,8 @@ def main():
 
         print(panel)
 
-        panel.to_csv(args.output, index=True)
+        panel.to_csv(args.output, index=True, header=header)
+        header=False
 
 if __name__ == '__main__':
     main()
