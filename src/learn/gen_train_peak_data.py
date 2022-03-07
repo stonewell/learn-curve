@@ -4,6 +4,7 @@ import argparse
 import datetime
 import logging
 import json
+import pathlib
 
 import pandas as pd
 
@@ -33,8 +34,8 @@ def parse_arguments():
                         metavar=('<begin date>', '<end date>'))
     parser.add_argument("--stock_data_provider", help="data provider for stock data",
                         type=str, metavar='<name>', default='stock_data_provider.cn_a.vip_dataset')
-    parser.add_argument('-o', "--output", help="save generated data to the file", required=True,
-                        type=argparse.FileType('w', encoding='utf-8'), metavar='<output file>')
+    parser.add_argument('-o', "--output", help="save generated data to the directory using stock id as file name", required=True,
+                        type=pathlib.Path, metavar='<output directory>')
     parser.add_argument('-p', "--parameters", help="parameters for peak analysis",
                         type=argparse.FileType('r', encoding='utf-8'), metavar='<parameter file>')
     parser.add_argument('--norm_data', help="nromalize stock data", action="store_true")
@@ -66,6 +67,8 @@ def main():
     if args.parameters is not None:
         provided_params.update(json.load(args.parameters))
 
+    args.output.mkdir(parents=True, exist_ok=True)
+
     for stock_id in args.stock_ids:
         params_ = {}
 
@@ -89,7 +92,7 @@ def main():
 
         print(panel)
 
-        panel.to_csv(args.output, index=True)
+        panel.to_csv(args.output / '{}.txt'.format(stock_id), index=True)
 
 if __name__ == '__main__':
     main()
