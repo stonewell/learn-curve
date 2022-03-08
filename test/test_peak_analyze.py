@@ -35,7 +35,8 @@ panel = p.analyze(['RSI(C, 4)', 'RSI(V, 9)', 'MACDHist(C, 12, 26, 9)'], 5, 5)
 
 print(p.peak_index_)
 
-d = panel[[panel.columns[0], panel.columns[1]]]
+#d = panel[[panel.columns[0], panel.columns[1]]]
+d = panel[panel.columns[:-1]]
 print(panel)
 
 plt.plot(d[panel['trade']==100], 'ro', label='peaks')

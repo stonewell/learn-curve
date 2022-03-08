@@ -37,6 +37,9 @@ def validate_args(args):
     if args.interval <= 0:
         raise argparse.ArgumentTypeError('invalid training interval:{}'.format(args.interval))
 
+    if not args.input.is_dir():
+        raise argparse.ArgumentTypeError('invalid training data directory:{}'.format(args.input))
+
 def main():
     args = parse_arguments()
 
@@ -55,8 +58,6 @@ def main():
     for training_file in args.input.iterdir():
         training_data = load_data(training_file, args)
 
-        print(training_data)
-
         if len(training_data) < args.interval:
             raise argparse.ArgumentTypeError('too few training data, need at least {}.'.format(args.interval))
 
@@ -68,10 +69,44 @@ def main():
     train_model(features, label, args)
 
 def load_data(training_file, args):
-    return pd.read_csv(training_file)
+    return pd.read_csv(training_file, index_col=0)
 
 def build_features_and_label(training_data, args):
-    return [], []
+    features_data = training_data[training_data.columns[:-1]].values.tolist()
+    label_data = training_data['trade'].tolist()
+
+    features = []
+    label = []
+    for index in range(0, len(features_data) - args.interval, 1):
+        entries = features_data[index : index + args.interval]
+
+        features.append(entries)
+
+        l = label_data[index + args.interval]
+
+        #if before or after change range label is not 0
+        #and current label is 0, use before/after label
+        check_range = 1
+        if l == 0:
+            for t in range(check_range):
+                try:
+                    l1 = label_data[index + args.interval - t - 1]
+                except:
+                    l1 = 0
+
+                try:
+                    l2 = label_data[index + args.interval + t + 1]
+                except:
+                    l2 = 0
+
+                l = l1 if l1 != 0 else l2 if l2 != 0 else 0
+
+                if l != 0:
+                    break
+
+        label.append(l)
+
+    return features, label
 
 def train_model(features, label, args):
     pass
