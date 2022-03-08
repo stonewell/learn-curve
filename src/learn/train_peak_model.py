@@ -28,9 +28,11 @@ def parse_arguments():
     parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0')
     parser.add_argument("-n", "--interval", type=int, help='days interval for training', default=5)
     parser.add_argument('-o', "--output", help="save generated model to the file", required=True,
-                        type=argparse.FileType('w', encoding='utf-8'), metavar='<output file>')
+                        type=pathlib.Path, metavar='<output file>')
     parser.add_argument('-i', "--input", help="training data directory for peak analysis", required=True,
                         type=pathlib.Path, metavar='<training data directory>')
+    parser.add_argument('-t', "--validate_input", help="training validating data directory for peak analysis", required=True,
+                        type=pathlib.Path, metavar='<training validating data directory>')
 
     return parser.parse_args()
 
@@ -40,6 +42,9 @@ def validate_args(args):
 
     if not args.input.is_dir():
         raise argparse.ArgumentTypeError('invalid training data directory:{}'.format(args.input))
+
+    if not args.validate_input.is_dir():
+        raise argparse.ArgumentTypeError('invalid training validation data directory:{}'.format(args.validate_input))
 
 def main():
     args = parse_arguments()
@@ -53,10 +58,18 @@ def main():
 
     validate_args(args)
 
+    features, label = load_features_label(args.input, args)
+    v_features, v_label = load_features_label(args.validate_input, args)
+
+    train_model(features, label,
+                v_features, v_label,
+                args)
+
+def load_features_label(input_dir, args):
     features = []
     label = []
 
-    for training_file in args.input.iterdir():
+    for training_file in input_dir.iterdir():
         training_data = load_data(training_file, args)
 
         if len(training_data) < args.interval:
@@ -67,7 +80,7 @@ def main():
         features.extend(features_)
         label.extend(label_)
 
-    train_model(features, label, args)
+    return features, label
 
 def load_data(training_file, args):
     return pd.read_csv(training_file, index_col=0)
@@ -116,10 +129,16 @@ def build_features_and_label(training_data, args):
 
     return features, label_array.tolist()
 
-def train_model(features, label, args):
-    train_model_keras_rnn(features, label, args)
+def train_model(features, label,
+                v_features, v_label,
+                args):
+    train_model_keras_rnn(features, label,
+                          v_features, v_label,
+                          args)
 
-def train_model_keras_rnn(features, label, args):
+def train_model_keras_rnn(features, label,
+                          v_features, v_label,
+                          args):
     from keras.models import Sequential
     from keras.layers import LSTM, Dense, Dropout
     from keras import Input
@@ -152,7 +171,7 @@ def train_model_keras_rnn(features, label, args):
     # Create callbacks
     callbacks = [
         EarlyStopping(monitor='val_loss', patience=5),
-        ModelCheckpoint('./model.h5',
+        ModelCheckpoint(args.output,
                         save_best_only=True,
                         save_weights_only=False)
     ]
@@ -160,7 +179,8 @@ def train_model_keras_rnn(features, label, args):
     history = model.fit(features,
                         label,
                         epochs=150,
-                        callbacks=callbacks)
+                        callbacks=callbacks,
+                        validation_data=(v_features, v_label))
 
 
 if __name__ == '__main__':
