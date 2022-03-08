@@ -7,6 +7,7 @@ import json
 import pathlib
 
 import pandas as pd
+import numpy as np
 
 from learn.peak_analyze import PeakAnalyze
 
@@ -106,10 +107,61 @@ def build_features_and_label(training_data, args):
 
         label.append(l)
 
-    return features, label
+    #one hot encode label
+    label_array = np.zeros((len(label), 3), dtype = np.int8)
+
+    for label_index, l in enumerate(label):
+        l_index = l if l == 0 else 1 if l == 50 else 2
+        label_array[label_index, l_index] = 1
+
+    return features, label_array.tolist()
 
 def train_model(features, label, args):
-    pass
+    train_model_keras_rnn(features, label, args)
+
+def train_model_keras_rnn(features, label, args):
+    from keras.models import Sequential
+    from keras.layers import LSTM, Dense, Dropout
+    from keras import Input
+
+    model = Sequential()
+
+    model.add(Input(shape=(args.interval, 3)))
+
+    model.add(LSTM(64,
+                   return_sequences=False,
+                   dropout=0.1,
+                   recurrent_dropout=0.1))
+
+    model.add(Dense(64,
+                    activation='relu'))
+
+    model.add(Dropout(0.5))
+
+    model.add(Dense(3,
+                    activation='softmax'))
+
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    model.summary()
+
+    from keras.callbacks import EarlyStopping, ModelCheckpoint
+
+    # Create callbacks
+    callbacks = [
+        EarlyStopping(monitor='val_loss', patience=5),
+        ModelCheckpoint('./model.h5',
+                        save_best_only=True,
+                        save_weights_only=False)
+    ]
+
+    history = model.fit(features,
+                        label,
+                        epochs=150,
+                        callbacks=callbacks)
+
 
 if __name__ == '__main__':
     main()
