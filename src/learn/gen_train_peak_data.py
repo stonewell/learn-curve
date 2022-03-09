@@ -9,9 +9,19 @@ import pathlib
 import pandas as pd
 
 from learn.peak_analyze import PeakAnalyze
+module_path = os.path.join(os.path.dirname(__file__), "..", "..", "modules")
+
+sys.path.append(module_path)
+
+from data.hushen300 import hu_shen_300_stocks
+from data.zhongxiao import zhongxiao_stocks
 
 sys.dont_write_bytecode = True
 
+builtin_stock_id_groups = {
+    'hu_shen_300': hu_shen_300_stocks,
+    'zhongxiao': zhongxiao_stocks
+}
 
 def valid_date(s):
     try:
@@ -26,7 +36,12 @@ def parse_arguments():
     parser.add_argument("-d", "--debug", help="print debug information", action="count", default=0)
     parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0')
     parser.add_argument("-s", "--stock_id", help="stock ids to process",
-                        action="append", required=True, dest="stock_ids")
+                        action="append", required=False, dest="stock_ids")
+    parser.add_argument("-sl", "--stock_id_list", help="file contains stock ids to process",
+                        type=pathlib.Path, required=False, metavar='<stock id list>')
+    parser.add_argument("-sg", "--stock_id_group", help="build in stock ids group to process",
+                        type=str, required=False, metavar='<stock id group>',
+                        choices=builtin_stock_id_groups.keys())
     parser.add_argument("-e", "--expression", help="expression to evaluate on stock price",
                         action="append", required=True, dest="expressions")
     parser.add_argument("--data_range", help="stock data range", nargs=2, required=True,
@@ -42,9 +57,17 @@ def parse_arguments():
 
     return parser.parse_args()
 
-def validate_args(args):
+def validate_args(args, stock_ids):
     if args.data_range[0] >= args.data_range[1]:
         raise argparse.ArgumentTypeError('invalid data range:{}'.format(args.data_range))
+
+    if ((args.stock_ids is None or len(args.stock_ids) == 0)
+        and args.stock_id_list is None
+        and args.stock_id_group is None):
+        raise argparse.ArgumentTypeError('missing stock ids')
+
+    if (len(stock_ids) == 0):
+        raise argparse.ArgumentTypeError('missing stock ids')
 
 def main():
     args = parse_arguments()
@@ -54,13 +77,15 @@ def main():
     else:
         logging.getLogger('').setLevel(logging.INFO)
 
+    stock_ids = load_stock_ids(args)
+
     logging.debug('debug level:{}'.format(args.debug))
-    logging.debug('stock_ids:{}'.format(args.stock_ids))
+    logging.debug('stock_ids:{}'.format(stock_ids))
     logging.debug('expressions:{}'.format(args.expressions))
     logging.debug('data_range:{}'.format(args.data_range))
     logging.debug('data_provider:{}'.format(args.stock_data_provider))
 
-    validate_args(args)
+    validate_args(args, stock_ids)
 
     provided_params = {}
 
@@ -69,7 +94,7 @@ def main():
 
     args.output.mkdir(parents=True, exist_ok=True)
 
-    for stock_id in args.stock_ids:
+    for stock_id in stock_ids:
         params_ = {}
 
         #load default params
@@ -93,6 +118,16 @@ def main():
         print(panel)
 
         panel.to_csv(args.output / '{}.txt'.format(stock_id), index=True)
+
+def load_stock_ids(args):
+    stock_ids = []
+
+    if args.stock_ids is not None:
+        stock_ids.extend(args.stock_ids)
+
+    if args.stock_id_list is not None:
+        with args.stock_id_list.open as f:
+            stock_ids.append(f.readline().replace('\r', '').replace('\n',''))
 
 if __name__ == '__main__':
     main()
