@@ -66,7 +66,7 @@ def validate_args(args, stock_ids):
         and args.stock_id_group is None):
         raise argparse.ArgumentTypeError('missing stock ids')
 
-    if (len(stock_ids) == 0):
+    if stock_ids is None or (len(stock_ids) == 0):
         raise argparse.ArgumentTypeError('missing stock ids')
 
 def main():
@@ -128,6 +128,11 @@ def load_stock_ids(args):
     if args.stock_id_list is not None:
         with args.stock_id_list.open as f:
             stock_ids.append(f.readline().replace('\r', '').replace('\n',''))
+
+    if args.stock_id_group is not None:
+        stock_ids.extend(builtin_stock_id_groups[args.stock_id_group])
+
+    return stock_ids
 
 if __name__ == '__main__':
     main()
