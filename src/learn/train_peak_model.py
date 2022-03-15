@@ -73,7 +73,8 @@ def load_features_label(input_dir, args):
         training_data = load_data(training_file, args)
 
         if len(training_data) < args.interval:
-            raise argparse.ArgumentTypeError('too few training data, need at least {}.'.format(args.interval))
+            logging.warning('{} too few training data, need at least {}.'.format(training_file, args.interval))
+            continue
 
         features_, label_ = build_features_and_label(training_data, args)
 
@@ -142,15 +143,24 @@ def train_model_keras_rnn(features, label,
     from keras.models import Sequential
     from keras.layers import LSTM, Dense, Dropout
     from keras import Input
+    from tensorflow.keras import optimizers
 
     model = Sequential()
 
-    model.add(Input(shape=(args.interval, 3)))
+    model.add(Input(shape=(args.interval, len(features[0][0]))))
 
-    model.add(LSTM(64,
+    # use default activation to use cuDNN kernel
+    model.add(LSTM(512,
+                   return_sequences=True,
+                   dropout=.1,
+                   #activation='relu'
+                   ))
+
+    model.add(LSTM(128,
                    return_sequences=False,
-                   dropout=0.1,
-                   recurrent_dropout=0.1))
+                   dropout=.1,
+                   #activation='relu'
+                   ))
 
     model.add(Dense(64,
                     activation='relu'))
@@ -160,8 +170,11 @@ def train_model_keras_rnn(features, label,
     model.add(Dense(3,
                     activation='softmax'))
 
-    model.compile(optimizer='adam',
+    optimizer = optimizers.Adam()
+
+    model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
+                  #loss='mean_squared_error',
                   metrics=['accuracy'])
 
     model.summary()
