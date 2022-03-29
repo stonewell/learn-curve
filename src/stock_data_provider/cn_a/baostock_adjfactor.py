@@ -37,7 +37,7 @@ def load_adjfactor(symbol, data_path):
 
     result_factor = pd.DataFrame(rs_list, columns=rs_factor.fields)
 
-    result_factor.to_csv(adj_file, encoding="gbk", index=False)
+    result_factor.to_csv(adj_file, encoding="utf-8", index=False)
 
     return load_adjfactor_from_file(adj_file)
 
