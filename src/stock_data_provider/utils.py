@@ -40,5 +40,6 @@ def get_data_globals(data):
     data_globals['MACDHist'] = __make_func(__MACDHist)
     data_globals['RSI'] = __make_func(talib.RSI)
     data_globals['REF'] = __ref
+    data_globals['PPO'] = __make_func(talib.PPO)
 
     return data_globals
