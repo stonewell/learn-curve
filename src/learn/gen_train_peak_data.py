@@ -5,6 +5,7 @@ import datetime
 import logging
 import json
 import pathlib
+import multiprocessing as mp
 
 import pandas as pd
 
@@ -13,15 +14,13 @@ module_path = os.path.join(os.path.dirname(__file__), "..", "..", "modules")
 
 sys.path.append(module_path)
 
-from data.hushen300 import hu_shen_300_stocks
-from data.zhongxiao import zhongxiao_stocks
+from stock_data_provider.cn_a.baostock_indexstock_query import load_all_indexes
 
 sys.dont_write_bytecode = True
 
-builtin_stock_id_groups = {
-    'hu_shen_300': hu_shen_300_stocks,
-    'zhongxiao': zhongxiao_stocks
-}
+data_path = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+
+builtin_stock_id_groups = load_all_indexes(data_path)
 
 def valid_date(s):
     try:
@@ -54,6 +53,8 @@ def parse_arguments():
     parser.add_argument('-p', "--parameters", help="parameters for peak analysis",
                         type=argparse.FileType('r', encoding='utf-8'), metavar='<parameter file>')
     parser.add_argument('--norm_data', help="nromalize stock data", action="store_true")
+    parser.add_argument("--no_pool", help="do not run with pool",
+                        action='store_true')
 
     return parser.parse_args()
 
@@ -94,7 +95,20 @@ def main():
 
     args.output.mkdir(parents=True, exist_ok=True)
 
-    for stock_id in stock_ids:
+    if args.no_pool:
+      for stock_id in stock_ids:
+        __run_single_stock(stock_id, provided_params, args)
+    else:
+      pool = mp.Pool(mp.cpu_count())
+
+      pool.starmap_async(__run_single_stock,
+                         list((stock_id, provided_params, args) for stock_id in stock_ids),
+                         error_callback=lambda x:logging.error('starmap async failed:%s', x))
+
+      pool.close()
+      pool.join()
+
+def __run_single_stock(stock_id, provided_params, args):
         params_ = {}
 
         #load default params
@@ -130,9 +144,11 @@ def load_stock_ids(args):
             stock_ids.append(f.readline().replace('\r', '').replace('\n',''))
 
     if args.stock_id_group is not None:
-        stock_ids.extend(builtin_stock_id_groups[args.stock_id_group])
+        stock_ids.extend(builtin_stock_id_groups[args.stock_id_group].keys())
 
     return stock_ids
 
 if __name__ == '__main__':
+    mp.set_start_method('forkserver')
+
     main()
