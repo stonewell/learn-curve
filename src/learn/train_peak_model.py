@@ -84,7 +84,7 @@ def load_features_label(input_dir, args):
     return features, label
 
 def load_data(training_file, args):
-    return pd.read_csv(training_file, index_col=0)
+    return pd.read_csv(training_file, index_col=0).fillna(0)
 
 def build_features_and_label(training_data, args):
     features_data = training_data[training_data.columns[:-1]].values.tolist()
